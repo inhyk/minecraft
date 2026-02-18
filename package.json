@@ -1,0 +1,12 @@
+{
+  "name": "minecraft-2d",
+  "version": "1.0.0",
+  "description": "2D Minecraft with online multiplayer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}
