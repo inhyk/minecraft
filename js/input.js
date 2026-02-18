@@ -1,0 +1,113 @@
+// ============================================================
+// Input Handling
+// ============================================================
+
+window.addEventListener('keydown', e => {
+  // Connect screen text input
+  if (gameState === STATE.CONNECT) {
+    if (e.code === 'Tab') { e.preventDefault(); connectFocus = connectFocus === 'server' ? 'name' : 'server'; return; }
+    if (e.code === 'Enter') { const addr = connectFields.server.trim(); const name = connectFields.name.trim() || 'Player'; if (addr) connectToServer(addr, name); return; }
+    if (e.code === 'Escape') { gameState = STATE.TITLE; initTitle(); return; }
+    if (e.code === 'Backspace') { e.preventDefault(); connectFields[connectFocus] = connectFields[connectFocus].slice(0, -1); return; }
+    if (e.key.length === 1 && connectFields[connectFocus].length < 40) { connectFields[connectFocus] += e.key; return; }
+    return;
+  }
+
+  // Chat input
+  if (gameState === STATE.PLAYING && chatOpen) {
+    if (e.code === 'Escape') { chatOpen = false; chatInput = ''; return; }
+    if (e.code === 'Enter') {
+      if (chatInput.trim()) { netSendChat(chatInput.trim()); addChatMessage(playerName, chatInput.trim()); }
+      chatOpen = false; chatInput = '';
+      return;
+    }
+    if (e.code === 'Backspace') { e.preventDefault(); chatInput = chatInput.slice(0, -1); return; }
+    if (e.key.length === 1 && chatInput.length < 100) { chatInput += e.key; return; }
+    return;
+  }
+
+  keys[e.code] = true;
+
+  if (gameState === STATE.PLAYING) {
+    // Open chat with T (multiplayer only)
+    if (e.code === 'KeyT' && isMultiplayer && !inventoryOpen) {
+      chatOpen = true; chatInput = '';
+      e.preventDefault(); return;
+    }
+
+    // Toggle inventory with E
+    if (e.code === 'KeyE') {
+      toggleInventory();
+      return;
+    }
+
+    // Close inventory with Escape, or go to title if not open
+    if (e.code === 'Escape') {
+      if (inventoryOpen) {
+        toggleInventory();
+      } else {
+        disconnectFromServer();
+        gameState = STATE.TITLE;
+        initTitle();
+      }
+      return;
+    }
+
+    // Hotbar selection (only when inventory closed)
+    if (!inventoryOpen && e.code >= 'Digit1' && e.code <= 'Digit9') {
+      player.selectedSlot = parseInt(e.code.replace('Digit', '')) - 1;
+    }
+  }
+});
+
+window.addEventListener('keyup', e => {
+  keys[e.code] = false;
+});
+
+canvas.addEventListener('mousemove', e => {
+  mouse.x = e.clientX;
+  mouse.y = e.clientY;
+});
+
+canvas.addEventListener('mousedown', e => {
+  e.preventDefault();
+  if (e.button === 0) {
+    mouse.left = true;
+    if (gameState === STATE.TITLE) {
+      handleTitleClick();
+    } else if (gameState === STATE.CONNECT) {
+      handleConnectClick();
+    } else if (gameState === STATE.PLAYING && inventoryOpen) {
+      handleInventoryClick(0, e.shiftKey);
+    } else if (gameState === STATE.PLAYING) {
+      attackMob();
+    }
+  }
+  if (e.button === 2) {
+    mouse.right = true;
+    if (gameState === STATE.PLAYING && inventoryOpen) {
+      handleInventoryClick(2, e.shiftKey);
+    } else if (gameState === STATE.PLAYING && !inventoryOpen) {
+      placeBlock();
+    }
+  }
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (e.button === 0) mouse.left = false;
+  if (e.button === 2) mouse.right = false;
+});
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+canvas.addEventListener('wheel', e => {
+  if (gameState === STATE.PLAYING && !inventoryOpen) {
+    if (e.deltaY > 0) {
+      player.selectedSlot = (player.selectedSlot + 1) % 9;
+    } else {
+      player.selectedSlot = (player.selectedSlot + 8) % 9;
+    }
+  }
+});
+
+window.addEventListener('resize', resize);
