@@ -105,7 +105,7 @@ const B = {
   LEAVES: 5, SAND: 6, WATER: 7, COAL_ORE: 8,
   IRON_ORE: 9, GOLD_ORE: 10, DIAMOND_ORE: 11,
   BEDROCK: 12, PLANKS: 13, COBBLESTONE: 14, BRICK: 15,
-  GLASS: 16, SNOW: 17, CRAFT_TABLE: 18
+  GLASS: 16, SNOW: 17, CRAFT_TABLE: 18, COPPER_ORE: 19
 };
 
 const BLOCK_INFO = {
@@ -128,6 +128,7 @@ const BLOCK_INFO = {
   [B.GLASS]:      { name: "Glass",     solid: true,  hardness: 0.5 },
   [B.SNOW]:       { name: "Snow",      solid: true,  hardness: 1 },
   [B.CRAFT_TABLE]:{ name: "Craft",     solid: true,  hardness: 2 },
+  [B.COPPER_ORE]: { name: "Copper Ore",solid: true,  hardness: 4 },
 };
 
 // ------------------------------------------------------------
@@ -297,6 +298,17 @@ function drawBlock(x, y, type, size) {
           ctx.fillRect(x + s*0.15 + gx*s*0.22, y + s*0.15 + gy*s*0.22, s*0.18, s*0.18);
         }
       break;
+    case B.COPPER_ORE:
+      ctx.fillStyle = '#888';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#c87533';
+      ctx.fillRect(x + s*0.15, y + s*0.15, s*0.22, s*0.22);
+      ctx.fillRect(x + s*0.55, y + s*0.5, s*0.25, s*0.22);
+      ctx.fillRect(x + s*0.4, y + s*0.2, s*0.15, s*0.15);
+      ctx.fillStyle = '#e09050';
+      ctx.fillRect(x + s*0.18, y + s*0.18, s*0.12, s*0.1);
+      ctx.fillRect(x + s*0.58, y + s*0.53, s*0.12, s*0.1);
+      break;
     default:
       ctx.fillStyle = '#f0f';
       ctx.fillRect(x, y, s, s);
@@ -398,6 +410,7 @@ function generateWorld() {
         if (depth > 5 && r < 0.03) setBlock(x, y, B.COAL_ORE);
         else if (depth > 15 && r < 0.015) setBlock(x, y, B.IRON_ORE);
         else if (depth > 30 && r < 0.008) setBlock(x, y, B.GOLD_ORE);
+        else if (depth > 8 && r < 0.02) setBlock(x, y, B.COPPER_ORE);
         else if (depth > 45 && r < 0.004) setBlock(x, y, B.DIAMOND_ORE);
       }
     }
@@ -2168,9 +2181,11 @@ function netSendChat(message) {
 
 function connectToServer(address, name) {
   connectError = '';
-  const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+  // Always use ws:// (use wss:// only if page is https)
+  const protocol = (location.protocol === 'https:') ? 'wss' : 'ws';
+  const addr = address.includes('://') ? address : `${protocol}://${address}`;
   try {
-    ws = new WebSocket(`${protocol}://${address}`);
+    ws = new WebSocket(addr);
   } catch(e) {
     connectError = 'Invalid address';
     return;
