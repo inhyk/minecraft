@@ -35,8 +35,12 @@ window.addEventListener('keydown', e => {
       e.preventDefault(); return;
     }
 
-    // Toggle inventory with E
+    // Toggle inventory with E (also closes trade)
     if (e.code === 'KeyE') {
+      if (tradeOpen) {
+        closeTrade();
+        return;
+      }
       toggleInventory();
       return;
     }
@@ -67,6 +71,10 @@ window.addEventListener('keyup', e => {
 canvas.addEventListener('mousemove', e => {
   mouse.x = e.clientX;
   mouse.y = e.clientY;
+  // Update trade UI hover state
+  if (tradeOpen) {
+    handleTradeHover(mouse.x, mouse.y);
+  }
 });
 
 canvas.addEventListener('mousedown', e => {
@@ -77,15 +85,23 @@ canvas.addEventListener('mousedown', e => {
       handleTitleClick();
     } else if (gameState === STATE.CONNECT) {
       handleConnectClick();
+    } else if (gameState === STATE.PLAYING && tradeOpen) {
+      handleTradeClick(mouse.x, mouse.y);
     } else if (gameState === STATE.PLAYING && inventoryOpen) {
       handleInventoryClick(0, e.shiftKey);
     } else if (gameState === STATE.PLAYING) {
-      attackMob();
+      // Try to interact with villager first, then attack mob
+      if (!tryInteractVillager(mouse.x, mouse.y)) {
+        attackMob();
+      }
     }
   }
   if (e.button === 2) {
     mouse.right = true;
-    if (gameState === STATE.PLAYING && inventoryOpen) {
+    if (gameState === STATE.PLAYING && tradeOpen) {
+      // Right click closes trade
+      closeTrade();
+    } else if (gameState === STATE.PLAYING && inventoryOpen) {
       handleInventoryClick(2, e.shiftKey);
     } else if (gameState === STATE.PLAYING && !inventoryOpen) {
       placeBlock();

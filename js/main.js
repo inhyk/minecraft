@@ -26,10 +26,11 @@ function gameLoop(timestamp) {
     updateCamera();
     updateClouds(dt);
     updateParticles(dt);
-    // Only host spawns/updates mobs
+    // Only host spawns/updates mobs and villagers
     if (isHost) {
       spawnMobs(dt);
       updateMobs(dt);
+      updateVillagers(dt);
     }
     updateArrows(dt);
     updateNetwork(dt);
@@ -40,6 +41,7 @@ function gameLoop(timestamp) {
     drawParticles();
     drawArrows();
     drawMobs();
+    drawVillagers();
     drawOtherPlayers();
     drawPlayerWithHurt();
     if (!inventoryOpen) {
@@ -51,6 +53,7 @@ function gameLoop(timestamp) {
     drawChat();
     drawDeathScreen();
     drawInventory();
+    drawTradeUI();
 
     // Multiplayer indicator
     if (isMultiplayer) {

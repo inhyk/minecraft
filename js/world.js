@@ -18,6 +18,9 @@ function generateWorld() {
     heights[x] = Math.floor(h);
   }
 
+  // Store heights for village generation
+  window.surfaceHeights = heights.slice();
+
   // Fill terrain
   for (let x = 0; x < WORLD_WIDTH; x++) {
     const surfaceH = heights[x];
@@ -101,6 +104,12 @@ function generateWorld() {
       x += poolW + 3;
     }
   }
+
+  // Generate villages
+  generateVillages(heights);
+
+  // Spawn villagers after villages are created
+  spawnVillagersFromVillages();
 }
 
 function getBlock(x, y) {

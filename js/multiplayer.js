@@ -26,7 +26,8 @@ function netSendMobState() {
     walkFrame: m.walkFrame, health: m.health, maxHealth: m.maxHealth,
     state: m.state, fuse: m.fuse, hurtTimer: m.hurtTimer,
   }));
-  ws.send(JSON.stringify({ type: 'mob_state', mobs: mobData }));
+  const villagerData = serializeVillagers();
+  ws.send(JSON.stringify({ type: 'mob_state', mobs: mobData, villagers: villagerData }));
 }
 
 function netSendChat(message) {
@@ -119,6 +120,9 @@ function connectToServer(address, name) {
       case 'mob_state':
         if (!isHost) {
           applyMobState(msg.mobs);
+          if (msg.villagers) {
+            applyVillagerState(msg.villagers);
+          }
         }
         break;
 

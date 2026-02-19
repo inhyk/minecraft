@@ -28,6 +28,7 @@ const players = {};      // id -> { ws, name, color, x, y, ... }
 let hostId = null;
 let nextId = 1;
 let latestMobState = [];
+let latestVillagerState = [];
 
 const COLORS = [
   '#4aaaa5', '#e06040', '#60a0e0', '#e0c040',
@@ -105,7 +106,8 @@ wss.on('connection', (ws) => {
       case 'mob_state': {
         if (id === hostId) {
           latestMobState = msg.mobs;
-          broadcast({ type: 'mob_state', mobs: msg.mobs }, id);
+          latestVillagerState = msg.villagers || [];
+          broadcast({ type: 'mob_state', mobs: msg.mobs, villagers: msg.villagers }, id);
         }
         break;
       }
