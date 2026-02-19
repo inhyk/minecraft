@@ -40,8 +40,9 @@ let arrows = []; // skeleton arrows
 // Inventory system state
 let inventoryOpen = false;
 let cursorItem = null;
-let craftGrid = [null, null, null, null]; // 2x2
+let craftGrid = [null, null, null, null]; // 2x2 (inventory) or 3x3 (crafting table)
 let craftOutput = null;
+let craftMode = 2; // 2 = 2x2 (inventory), 3 = 3x3 (crafting table)
 let invSlotRects = []; // cached slot rects for click detection
 let hoveredSlot = -1;
 let tooltipText = '';

@@ -61,6 +61,13 @@ function placeBlock() {
   if (!target) return;
 
   const blockType = getBlock(target.x, target.y);
+
+  // Right-click on crafting table -> open 3x3 crafting
+  if (blockType === B.CRAFT_TABLE) {
+    openCraftingTable();
+    return;
+  }
+
   if (blockType !== B.AIR && blockType !== B.WATER) return;
 
   // Check not placing inside player
