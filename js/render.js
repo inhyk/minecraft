@@ -24,8 +24,8 @@ function drawSky() {
 }
 
 function drawWorld() {
-  const startX = Math.max(0, Math.floor(camera.x / BLOCK_SIZE));
-  const endX = Math.min(WORLD_WIDTH, Math.ceil((camera.x + canvas.width) / BLOCK_SIZE) + 1);
+  const startX = Math.floor(camera.x / BLOCK_SIZE);
+  const endX = Math.ceil((camera.x + canvas.width) / BLOCK_SIZE) + 1;
   const startY = Math.max(0, Math.floor(camera.y / BLOCK_SIZE));
   const endY = Math.min(WORLD_HEIGHT, Math.ceil((camera.y + canvas.height) / BLOCK_SIZE) + 1);
 
@@ -173,6 +173,8 @@ function drawHotbar() {
     const item = player.inventory[i];
     if (item) {
       drawBlock(sx + 8, sy + 8, item.type, slotSize - 16);
+      // Durability bar
+      drawDurabilityBar(sx + 8, sy + 8, slotSize - 16, item);
       // Count
       if (item.count > 1) {
         ctx.fillStyle = '#fff';

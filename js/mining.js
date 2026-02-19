@@ -42,7 +42,8 @@ function updateMining(dt) {
   miningTarget = target;
 
   miningProgress += dt;
-  const required = MINE_TIME * info.hardness;
+  const toolMultiplier = getToolSpeedMultiplier(blockType);
+  const required = MINE_TIME * info.hardness / toolMultiplier;
 
   if (miningProgress >= required) {
     // Break block
@@ -53,10 +54,50 @@ function updateMining(dt) {
     miningProgress = 0;
     // Particles
     spawnBreakParticles(target.x, target.y, blockType);
+    // Damage held tool
+    damageHeldTool();
   }
 }
 
+function eatFood() {
+  if (playerDeathTimer > 0) return false;
+  const slot = player.inventory[player.selectedSlot];
+  if (!slot || slot.count <= 0) return false;
+  const info = BLOCK_INFO[slot.type];
+  if (!info || !info.food) return false;
+  if (player.health >= player.maxHealth) return false;
+
+  player.health = Math.min(player.maxHealth, player.health + info.food);
+  slot.count--;
+  if (slot.count <= 0) player.inventory[player.selectedSlot] = null;
+
+  // Eating particles
+  const px = player.x + player.w / 2;
+  const py = player.y + player.h * 0.3;
+  for (let i = 0; i < 6; i++) {
+    particles.push({
+      x: px, y: py,
+      vx: (Math.random() - 0.5) * 3,
+      vy: (Math.random() - 1) * 3,
+      life: 10 + Math.random() * 10,
+      type: slot.type || B.DIRT,
+      size: 3 + Math.random() * 4,
+    });
+  }
+  return true;
+}
+
 function placeBlock() {
+  // Try eating food first
+  const slot = player.inventory[player.selectedSlot];
+  if (slot) {
+    const info = BLOCK_INFO[slot.type];
+    if (info && info.food) {
+      eatFood();
+      return;
+    }
+  }
+
   const target = getTargetBlock();
   if (!target) return;
 
@@ -76,8 +117,11 @@ function placeBlock() {
   if (bx < player.x + player.w && bx + BLOCK_SIZE > player.x &&
       by < player.y + player.h && by + BLOCK_SIZE > player.y) return;
 
-  const slot = player.inventory[player.selectedSlot];
   if (!slot || slot.count <= 0) return;
+
+  // Non-placeable items (food, materials)
+  const slotInfo = BLOCK_INFO[slot.type];
+  if (slotInfo && slotInfo.placeable === false) return;
 
   setBlock(target.x, target.y, slot.type);
   netSendBlock(target.x, target.y, slot.type);
@@ -86,18 +130,25 @@ function placeBlock() {
 }
 
 function addToInventory(type) {
-  // Try to stack in hotbar first (0-8), then main (9-35)
-  for (let i = 0; i < 36; i++) {
-    const slot = player.inventory[i];
-    if (slot && slot.type === type && slot.count < 64) {
-      slot.count++;
-      return true;
+  const maxStack = getMaxStack(type);
+  const maxDur = getMaxDurability(type);
+
+  // Try to stack (only if stackable and not a tool with durability)
+  if (maxStack > 1 && maxDur <= 0) {
+    for (let i = 0; i < 36; i++) {
+      const slot = player.inventory[i];
+      if (slot && slot.type === type && slot.count < maxStack) {
+        slot.count++;
+        return true;
+      }
     }
   }
   // Try empty slot in hotbar first, then main
   for (let i = 0; i < 36; i++) {
     if (!player.inventory[i]) {
-      player.inventory[i] = { type, count: 1 };
+      const item = { type, count: 1 };
+      if (maxDur > 0) item.durability = maxDur;
+      player.inventory[i] = item;
       return true;
     }
   }

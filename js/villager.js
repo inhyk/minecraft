@@ -385,7 +385,7 @@ function executeTrade(trade) {
 
 function countInventoryItem(itemType) {
   let count = 0;
-  for (const slot of inventory) {
+  for (const slot of player.inventory) {
     if (slot && slot.type === itemType) {
       count += slot.count;
     }
@@ -395,13 +395,13 @@ function countInventoryItem(itemType) {
 
 function removeFromInventory(itemType, amount) {
   let remaining = amount;
-  for (let i = 0; i < inventory.length && remaining > 0; i++) {
-    if (inventory[i] && inventory[i].type === itemType) {
-      if (inventory[i].count <= remaining) {
-        remaining -= inventory[i].count;
-        inventory[i] = null;
+  for (let i = 0; i < player.inventory.length && remaining > 0; i++) {
+    if (player.inventory[i] && player.inventory[i].type === itemType) {
+      if (player.inventory[i].count <= remaining) {
+        remaining -= player.inventory[i].count;
+        player.inventory[i] = null;
       } else {
-        inventory[i].count -= remaining;
+        player.inventory[i].count -= remaining;
         remaining = 0;
       }
     }

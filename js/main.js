@@ -22,14 +22,17 @@ function gameLoop(timestamp) {
   } else if (gameState === STATE.PLAYING) {
     updatePlayerStatus(dt);
     updatePlayer(dt);
+    ensureChunksLoaded();
     updateMining(dt);
     updateCamera();
     updateClouds(dt);
     updateParticles(dt);
-    // Only host spawns/updates mobs and villagers
+    // Only host spawns/updates mobs, animals and villagers
     if (isHost) {
       spawnMobs(dt);
       updateMobs(dt);
+      spawnAnimals(dt);
+      updateAnimals(dt);
       updateVillagers(dt);
     }
     updateArrows(dt);
@@ -41,6 +44,7 @@ function gameLoop(timestamp) {
     drawParticles();
     drawArrows();
     drawMobs();
+    drawAnimals();
     drawVillagers();
     drawOtherPlayers();
     drawPlayerWithHurt();

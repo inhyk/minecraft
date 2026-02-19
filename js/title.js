@@ -281,10 +281,12 @@ function startGame() {
   initClouds();
   particles = [];
   mobs = [];
+  animals = [];
   arrows = [];
   miningProgress = 0;
   miningTarget = null;
   mobSpawnTimer = 0;
+  animalSpawnTimer = 0;
   playerHurtTimer = 0;
   playerDeathTimer = 0;
   inventoryOpen = false;

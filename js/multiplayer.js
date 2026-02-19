@@ -27,7 +27,12 @@ function netSendMobState() {
     state: m.state, fuse: m.fuse, hurtTimer: m.hurtTimer,
   }));
   const villagerData = serializeVillagers();
-  ws.send(JSON.stringify({ type: 'mob_state', mobs: mobData, villagers: villagerData }));
+  const animalData = animals.map(a => ({
+    type: a.type, x: a.x, y: a.y, facing: a.facing,
+    walkFrame: a.walkFrame, health: a.health, maxHealth: a.maxHealth,
+    state: a.state, hurtTimer: a.hurtTimer,
+  }));
+  ws.send(JSON.stringify({ type: 'mob_state', mobs: mobData, villagers: villagerData, animals: animalData }));
 }
 
 function netSendChat(message) {
@@ -78,11 +83,14 @@ function connectToServer(address, name) {
         player.color = msg.color;
         initClouds();
         mobs = [];
+        animals = [];
         arrows = [];
         particles = [];
         miningProgress = 0;
         miningTarget = null;
         mobSpawnTimer = 0;
+        animalSpawnTimer = 0;
+        generatedVillageZones = {};
         playerHurtTimer = 0;
         playerDeathTimer = 0;
         inventoryOpen = false;
@@ -122,6 +130,9 @@ function connectToServer(address, name) {
           applyMobState(msg.mobs);
           if (msg.villagers) {
             applyVillagerState(msg.villagers);
+          }
+          if (msg.animals) {
+            applyAnimalState(msg.animals);
           }
         }
         break;

@@ -29,6 +29,7 @@ let hostId = null;
 let nextId = 1;
 let latestMobState = [];
 let latestVillagerState = [];
+let latestAnimalState = [];
 
 const COLORS = [
   '#4aaaa5', '#e06040', '#60a0e0', '#e0c040',
@@ -107,7 +108,8 @@ wss.on('connection', (ws) => {
         if (id === hostId) {
           latestMobState = msg.mobs;
           latestVillagerState = msg.villagers || [];
-          broadcast({ type: 'mob_state', mobs: msg.mobs, villagers: msg.villagers }, id);
+          latestAnimalState = msg.animals || [];
+          broadcast({ type: 'mob_state', mobs: msg.mobs, villagers: msg.villagers, animals: msg.animals }, id);
         }
         break;
       }

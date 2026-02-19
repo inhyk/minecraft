@@ -13,46 +13,170 @@ const CRAFT_RECIPES = [
   { pattern: '2x2', input: [B.SAND, B.SAND, B.SAND, B.SAND], output: { type: B.GLASS, count: 4 } },
   { pattern: '2x2', input: [B.DIRT, B.DIRT, B.DIRT, B.DIRT], output: { type: B.GRASS, count: 4 } },
   { pattern: '2x2', input: [B.GLASS, B.GLASS, B.DIRT, B.DIRT], output: { type: B.SNOW, count: 4 } },
+  // Sticks: 2 planks vertically = 4 sticks
+  { pattern: '2x2', input: [B.PLANKS, null, B.PLANKS, null], output: { type: B.STICK, count: 4 } },
+  { pattern: '2x2', input: [null, B.PLANKS, null, B.PLANKS], output: { type: B.STICK, count: 4 } },
 
   // --- 3x3 recipes (crafting table only) ---
-  // Iron block: 9 iron ore -> 1 iron block (placeholder as we reuse iron ore)
-  // Diamond block: 9 diamond -> 1 glass block (placeholder)
-  // Bookshelf-like: planks row + planks row + planks row = 6 planks
+  // Block recipes
   { pattern: '3x3', input: [
     B.IRON_ORE, B.IRON_ORE, B.IRON_ORE,
     B.IRON_ORE, B.IRON_ORE, B.IRON_ORE,
     B.IRON_ORE, B.IRON_ORE, B.IRON_ORE,
   ], output: { type: B.COBBLESTONE, count: 16 } },
-  // Diamond pickaxe-like: 3 diamond + 2 planks (cross pattern)
-  { pattern: '3x3', input: [
-    B.DIAMOND_ORE, B.DIAMOND_ORE, B.DIAMOND_ORE,
-    null, B.PLANKS, null,
-    null, B.PLANKS, null,
-  ], output: { type: B.GOLD_ORE, count: 8 } },
-  // Full brick wall: 3x3 cobblestone -> 9 bricks
   { pattern: '3x3', input: [
     B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE,
     B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE,
     B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE,
   ], output: { type: B.BRICK, count: 9 } },
-  // Glass pane: 3x2 glass -> 8 glass
   { pattern: '3x3', input: [
     B.GLASS, B.GLASS, B.GLASS,
     B.GLASS, B.GLASS, B.GLASS,
     null, null, null,
   ], output: { type: B.GLASS, count: 16 } },
-  // Snow block: 3x3 snow -> lots of snow
   { pattern: '3x3', input: [
     B.SNOW, B.SNOW, B.SNOW,
     B.SNOW, B.SNOW, B.SNOW,
     B.SNOW, B.SNOW, B.SNOW,
   ], output: { type: B.SNOW, count: 16 } },
-  // Copper block
   { pattern: '3x3', input: [
     B.COPPER_ORE, B.COPPER_ORE, B.COPPER_ORE,
     B.COPPER_ORE, B.COPPER_ORE, B.COPPER_ORE,
     B.COPPER_ORE, B.COPPER_ORE, B.COPPER_ORE,
   ], output: { type: B.BRICK, count: 16 } },
+
+  // ===== PICKAXES =====
+  { pattern: '3x3', input: [
+    B.PLANKS, B.PLANKS, B.PLANKS,
+    null, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.WOOD_PICKAXE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE,
+    null, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.STONE_PICKAXE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.IRON_ORE, B.IRON_ORE, B.IRON_ORE,
+    null, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.IRON_PICKAXE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.GOLD_ORE, B.GOLD_ORE, B.GOLD_ORE,
+    null, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.GOLD_PICKAXE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.DIAMOND_ORE, B.DIAMOND_ORE, B.DIAMOND_ORE,
+    null, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.DIAMOND_PICKAXE, count: 1 } },
+
+  // ===== AXES (two orientations) =====
+  { pattern: '3x3', input: [
+    B.PLANKS, B.PLANKS, null,
+    B.PLANKS, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.WOOD_AXE, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.PLANKS, B.PLANKS,
+    null, B.STICK, B.PLANKS,
+    null, B.STICK, null,
+  ], output: { type: B.WOOD_AXE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.COBBLESTONE, B.COBBLESTONE, null,
+    B.COBBLESTONE, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.STONE_AXE, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.COBBLESTONE, B.COBBLESTONE,
+    null, B.STICK, B.COBBLESTONE,
+    null, B.STICK, null,
+  ], output: { type: B.STONE_AXE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.IRON_ORE, B.IRON_ORE, null,
+    B.IRON_ORE, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.IRON_AXE, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.IRON_ORE, B.IRON_ORE,
+    null, B.STICK, B.IRON_ORE,
+    null, B.STICK, null,
+  ], output: { type: B.IRON_AXE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.GOLD_ORE, B.GOLD_ORE, null,
+    B.GOLD_ORE, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.GOLD_AXE, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.GOLD_ORE, B.GOLD_ORE,
+    null, B.STICK, B.GOLD_ORE,
+    null, B.STICK, null,
+  ], output: { type: B.GOLD_AXE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.DIAMOND_ORE, B.DIAMOND_ORE, null,
+    B.DIAMOND_ORE, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.DIAMOND_AXE, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.DIAMOND_ORE, B.DIAMOND_ORE,
+    null, B.STICK, B.DIAMOND_ORE,
+    null, B.STICK, null,
+  ], output: { type: B.DIAMOND_AXE, count: 1 } },
+
+  // ===== SWORDS =====
+  { pattern: '3x3', input: [
+    null, B.PLANKS, null,
+    null, B.PLANKS, null,
+    null, B.STICK, null,
+  ], output: { type: B.WOOD_SWORD, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.COBBLESTONE, null,
+    null, B.COBBLESTONE, null,
+    null, B.STICK, null,
+  ], output: { type: B.STONE_SWORD, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.IRON_ORE, null,
+    null, B.IRON_ORE, null,
+    null, B.STICK, null,
+  ], output: { type: B.IRON_SWORD, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.GOLD_ORE, null,
+    null, B.GOLD_ORE, null,
+    null, B.STICK, null,
+  ], output: { type: B.GOLD_SWORD, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.DIAMOND_ORE, null,
+    null, B.DIAMOND_ORE, null,
+    null, B.STICK, null,
+  ], output: { type: B.DIAMOND_SWORD, count: 1 } },
+
+  // ===== SHOVELS =====
+  { pattern: '3x3', input: [
+    null, B.PLANKS, null,
+    null, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.WOOD_SHOVEL, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.COBBLESTONE, null,
+    null, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.STONE_SHOVEL, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.IRON_ORE, null,
+    null, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.IRON_SHOVEL, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.GOLD_ORE, null,
+    null, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.GOLD_SHOVEL, count: 1 } },
+  { pattern: '3x3', input: [
+    null, B.DIAMOND_ORE, null,
+    null, B.STICK, null,
+    null, B.STICK, null,
+  ], output: { type: B.DIAMOND_SHOVEL, count: 1 } },
 ];
 
 function checkCraftingRecipe() {
@@ -137,6 +261,8 @@ function checkCraftingRecipe() {
 function craftItem() {
   if (!craftOutput) return null;
   const result = { type: craftOutput.type, count: craftOutput.count };
+  const maxDur = getMaxDurability(result.type);
+  if (maxDur > 0) result.durability = maxDur;
   const gridSize = craftMode * craftMode;
 
   // Consume 1 from each filled craft slot
@@ -359,7 +485,11 @@ function drawInvSlot(x, y, item, slotId, isOutput, isSelected) {
     hoveredSlot = invSlotRects.length - 1;
     if (item) {
       const info = BLOCK_INFO[item.type];
-      tooltipText = info ? `${info.name} x${item.count}` : `Block ${item.type} x${item.count}`;
+      if (info && info.durability && item.durability !== undefined) {
+        tooltipText = `${info.name} (${item.durability}/${info.durability})`;
+      } else {
+        tooltipText = info ? `${info.name} x${item.count}` : `Block ${item.type} x${item.count}`;
+      }
     } else if (cursorItem) {
       tooltipText = '';
     }
@@ -397,6 +527,8 @@ function drawInvSlot(x, y, item, slotId, isOutput, isSelected) {
   if (item) {
     const iconSize = INV_SLOT - 16;
     drawBlock(x + 8, y + 8, item.type, iconSize);
+    // Durability bar
+    drawDurabilityBar(x + 8, y + 8, iconSize, item);
 
     // Count
     if (item.count > 1) {
@@ -464,7 +596,8 @@ function handleInventoryClick(button, shiftKey) {
     } else if (cursorItem && slotItem) {
       if (cursorItem.type === slotItem.type) {
         // Stack items
-        const space = 64 - slotItem.count;
+        const ms = getMaxStack(slotItem.type);
+        const space = ms - slotItem.count;
         const transfer = Math.min(cursorItem.count, space);
         slotItem.count += transfer;
         cursorItem.count -= transfer;
@@ -491,7 +624,7 @@ function handleInventoryClick(button, shiftKey) {
       if (cursorItem.count <= 0) cursorItem = null;
     } else if (cursorItem && slotItem && cursorItem.type === slotItem.type) {
       // Place 1 onto matching stack
-      if (slotItem.count < 64) {
+      if (slotItem.count < getMaxStack(slotItem.type)) {
         slotItem.count++;
         cursorItem.count--;
         if (cursorItem.count <= 0) cursorItem = null;
@@ -523,12 +656,13 @@ function handleCraftOutputClick(button) {
 function quickMoveItem(fromIdx, toStart, toEnd) {
   const item = player.inventory[fromIdx];
   if (!item) return;
+  const ms = getMaxStack(item.type);
 
   // Try stacking first
   for (let i = toStart; i <= toEnd; i++) {
     const target = player.inventory[i];
-    if (target && target.type === item.type && target.count < 64) {
-      const transfer = Math.min(item.count, 64 - target.count);
+    if (target && target.type === item.type && target.count < ms) {
+      const transfer = Math.min(item.count, ms - target.count);
       target.count += transfer;
       item.count -= transfer;
       if (item.count <= 0) { player.inventory[fromIdx] = null; return; }
@@ -554,8 +688,8 @@ function quickMoveCraftItem(craftIdx) {
     const end = pass === 0 ? 8 : 35;
     for (let i = start; i <= end; i++) {
       const target = player.inventory[i];
-      if (target && target.type === item.type && target.count < 64) {
-        const transfer = Math.min(item.count, 64 - target.count);
+      if (target && target.type === item.type && target.count < getMaxStack(item.type)) {
+        const transfer = Math.min(item.count, getMaxStack(item.type) - target.count);
         target.count += transfer;
         item.count -= transfer;
         if (item.count <= 0) { craftGrid[craftIdx] = null; return; }

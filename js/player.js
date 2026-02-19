@@ -4,14 +4,8 @@
 
 function createPlayer() {
   // Find spawn point
-  let spawnX = Math.floor(WORLD_WIDTH / 2);
-  let spawnY = 0;
-  for (let y = 0; y < WORLD_HEIGHT; y++) {
-    if (getBlock(spawnX, y) !== B.AIR) {
-      spawnY = y - 2;
-      break;
-    }
-  }
+  let spawnX = SPAWN_X;
+  let spawnY = getSurfaceHeight(spawnX) - 2;
 
   return {
     x: spawnX * BLOCK_SIZE,
@@ -32,16 +26,7 @@ function createPlayer() {
 
 function createDefaultInventory() {
   // 36 slots: 0-8 = hotbar, 9-35 = main inventory (3 rows of 9)
-  const inv = new Array(36).fill(null);
-  inv[0] = { type: B.DIRT, count: 64 };
-  inv[1] = { type: B.COBBLESTONE, count: 64 };
-  inv[2] = { type: B.PLANKS, count: 64 };
-  inv[3] = { type: B.GLASS, count: 32 };
-  inv[4] = { type: B.BRICK, count: 32 };
-  inv[5] = { type: B.CRAFT_TABLE, count: 16 };
-  inv[6] = { type: B.WOOD, count: 32 };
-  inv[7] = { type: B.SAND, count: 32 };
-  return inv;
+  return new Array(36).fill(null);
 }
 
 function updatePlayer(dt) {
@@ -146,11 +131,8 @@ function updatePlayerStatus(dt) {
 }
 
 function respawnPlayer() {
-  let spawnX = Math.floor(WORLD_WIDTH / 2);
-  let spawnY = 0;
-  for (let y = 0; y < WORLD_HEIGHT; y++) {
-    if (getBlock(spawnX, y) !== B.AIR) { spawnY = y - 2; break; }
-  }
+  let spawnX = SPAWN_X;
+  let spawnY = getSurfaceHeight(spawnX) - 2;
   player.x = spawnX * BLOCK_SIZE;
   player.y = spawnY * BLOCK_SIZE;
   player.vx = 0; player.vy = 0;

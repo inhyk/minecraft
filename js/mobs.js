@@ -31,14 +31,35 @@ function spawnMobs(dt) {
 
   // Spawn 15-40 blocks away from player horizontally
   const dir = Math.random() < 0.5 ? -1 : 1;
-  const dist = 15 + Math.random() * 25;
+  const dist = 15 + Math.floor(Math.random() * 25);
   const spawnBX = Math.floor(player.x / BLOCK_SIZE) + dir * dist;
-  if (spawnBX < 2 || spawnBX >= WORLD_WIDTH - 2) return;
 
-  // Find surface
+  const playerBY = Math.floor(player.y / BLOCK_SIZE);
+  const underground = playerBY > SURFACE_Y + 5;
+
   let spawnBY = 0;
-  for (let y = 0; y < WORLD_HEIGHT; y++) {
-    if (isSolid(spawnBX, y)) { spawnBY = y - 2; break; }
+
+  if (underground && Math.random() < 0.7) {
+    // Underground spawn: find air pocket near player's Y level
+    const searchStart = Math.max(SURFACE_Y + 5, playerBY - 10);
+    const searchEnd = Math.min(WORLD_HEIGHT - 3, playerBY + 10);
+    // Collect valid positions then pick one randomly
+    const candidates = [];
+    for (let y = searchStart; y < searchEnd; y++) {
+      if (!isSolid(spawnBX, y) && !isSolid(spawnBX, y - 1) && isSolid(spawnBX, y + 1)) {
+        candidates.push(y - 1);
+      }
+    }
+    if (candidates.length > 0) {
+      spawnBY = candidates[Math.floor(Math.random() * candidates.length)];
+    }
+  }
+
+  if (spawnBY <= 0) {
+    // Surface spawn: find first solid from top
+    for (let y = 0; y < WORLD_HEIGHT; y++) {
+      if (isSolid(spawnBX, y)) { spawnBY = y - 2; break; }
+    }
   }
   if (spawnBY <= 0) return;
 
@@ -296,9 +317,7 @@ function updateArrows(dt) {
 }
 
 function attackMob() {
-  if (inventoryOpen || playerDeathTimer > 0) return;
-  const target = getTargetBlock();
-  if (!target) return;
+  if (inventoryOpen || playerDeathTimer > 0) return false;
 
   const clickX = mouse.x + camera.x;
   const clickY = mouse.y + camera.y;
@@ -310,17 +329,19 @@ function attackMob() {
       const pcy = player.y + player.h / 2;
       const dist = Math.sqrt((pcx - m.x - m.w/2)**2 + (pcy - m.y - m.h/2)**2);
       if (dist < BLOCK_SIZE * 5) {
-        m.health -= 4;
+        m.health -= getAttackDamage();
         m.hurtTimer = 300;
         // Knockback
         const kb = m.x + m.w/2 > pcx ? 1 : -1;
         m.vx = kb * 5;
         m.vy = -4;
         m.onGround = false;
-        return; // hit one mob only
+        damageHeldTool();
+        return true; // hit one mob only
       }
     }
   }
+  return false;
 }
 
 function spawnMobDrops(m) {

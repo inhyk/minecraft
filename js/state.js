@@ -8,7 +8,8 @@ const ctx = canvas.getContext('2d');
 // Game states
 const STATE = { TITLE: 0, PLAYING: 1, CONNECT: 2 };
 let gameState = STATE.TITLE;
-let world = [];
+let chunks = {}; // key: chunkX -> Uint8Array(CHUNK_SIZE * WORLD_HEIGHT)
+let chunkGenerated = {}; // key: chunkX -> true (terrain+decor done)
 let player = null;
 let camera = { x: 0, y: 0 };
 let keys = {};
@@ -62,6 +63,10 @@ let connectError = '';
 let chatMessages = [];
 let chatInput = '';
 let chatOpen = false;
+
+// Animal system state
+let animals = [];
+let animalSpawnTimer = 0;
 
 // Particles
 let particles = [];
