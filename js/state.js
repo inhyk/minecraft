@@ -68,6 +68,6 @@ let particles = [];
 // Title screen
 let titleButtons = {};
 
-// Connect screen
-let connectFields = { server: 'localhost:3000', name: 'Player' };
+// Connect screen - auto-detect server address from current URL
+let connectFields = { server: location.host || 'localhost:3000', name: 'Player' };
 let connectFocus = 'name';
