@@ -322,20 +322,28 @@ function attackMob() {
   const clickX = mouse.x + camera.x;
   const clickY = mouse.y + camera.y;
 
-  for (const m of mobs) {
+  for (let i = 0; i < mobs.length; i++) {
+    const m = mobs[i];
     if (clickX >= m.x && clickX <= m.x + m.w &&
         clickY >= m.y && clickY <= m.y + m.h) {
       const pcx = player.x + player.w / 2;
       const pcy = player.y + player.h / 2;
       const dist = Math.sqrt((pcx - m.x - m.w/2)**2 + (pcy - m.y - m.h/2)**2);
       if (dist < BLOCK_SIZE * 5) {
-        m.health -= getAttackDamage();
-        m.hurtTimer = 300;
-        // Knockback
+        const damage = getAttackDamage();
         const kb = m.x + m.w/2 > pcx ? 1 : -1;
-        m.vx = kb * 5;
-        m.vy = -4;
-        m.onGround = false;
+
+        // In multiplayer, guest sends attack to host
+        if (isMultiplayer && !isHost) {
+          netSendAttackMob(i, damage, kb);
+        } else {
+          // Host or singleplayer: apply damage directly
+          m.health -= damage;
+          m.hurtTimer = 300;
+          m.vx = kb * 5;
+          m.vy = -4;
+          m.onGround = false;
+        }
         damageHeldTool();
         return true; // hit one mob only
       }

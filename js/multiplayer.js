@@ -140,6 +140,14 @@ async function joinChannel(roomCode, name) {
     handleChat(payload);
   });
 
+  realtimeChannel.on('broadcast', { event: 'attack_mob' }, ({ payload }) => {
+    handleAttackMob(payload);
+  });
+
+  realtimeChannel.on('broadcast', { event: 'attack_animal' }, ({ payload }) => {
+    handleAttackAnimal(payload);
+  });
+
   // Subscribe to channel
   await realtimeChannel.subscribe(async (status) => {
     if (status === 'SUBSCRIBED') {
@@ -257,6 +265,36 @@ function handleChat(payload) {
   addChatMessage(payload.name, payload.message);
 }
 
+function handleAttackMob(payload) {
+  // Only host processes attacks
+  if (!isHost) return;
+  const { mobIndex, damage, knockbackDir } = payload;
+  if (mobIndex >= 0 && mobIndex < mobs.length) {
+    const m = mobs[mobIndex];
+    m.health -= damage;
+    m.hurtTimer = 300;
+    m.vx = knockbackDir * 5;
+    m.vy = -4;
+    m.onGround = false;
+  }
+}
+
+function handleAttackAnimal(payload) {
+  // Only host processes attacks
+  if (!isHost) return;
+  const { animalIndex, damage, knockbackDir } = payload;
+  if (animalIndex >= 0 && animalIndex < animals.length) {
+    const a = animals[animalIndex];
+    a.health -= damage;
+    a.hurtTimer = 300;
+    a.vx = knockbackDir * 4;
+    a.vy = -3;
+    a.onGround = false;
+    a.state = 'flee';
+    a.fleeTimer = 3000;
+  }
+}
+
 // ─── Message Send Functions ────────────────────────────────
 function netSendPosition() {
   if (!isMultiplayer || !realtimeChannel) return;
@@ -323,6 +361,26 @@ function netSendChat(message) {
     type: 'broadcast',
     event: 'chat',
     payload: { id: myId, name: playerName, message }
+  });
+}
+
+function netSendAttackMob(mobIndex, damage, knockbackDir) {
+  if (!isMultiplayer || !realtimeChannel) return;
+
+  realtimeChannel.send({
+    type: 'broadcast',
+    event: 'attack_mob',
+    payload: { mobIndex, damage, knockbackDir }
+  });
+}
+
+function netSendAttackAnimal(animalIndex, damage, knockbackDir) {
+  if (!isMultiplayer || !realtimeChannel) return;
+
+  realtimeChannel.send({
+    type: 'broadcast',
+    event: 'attack_animal',
+    payload: { animalIndex, damage, knockbackDir }
   });
 }
 

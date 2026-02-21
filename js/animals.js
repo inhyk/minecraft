@@ -199,21 +199,28 @@ function attackAnimal() {
   const pcx = player.x + player.w / 2;
   const pcy = player.y + player.h / 2;
 
-  for (const a of animals) {
+  for (let i = 0; i < animals.length; i++) {
+    const a = animals[i];
     if (clickX >= a.x && clickX <= a.x + a.w &&
         clickY >= a.y && clickY <= a.y + a.h) {
       const dist = Math.sqrt((pcx - a.x - a.w/2)**2 + (pcy - a.y - a.h/2)**2);
       if (dist < BLOCK_SIZE * 5) {
-        a.health -= getAttackDamage();
-        a.hurtTimer = 300;
-        // Knockback
+        const damage = getAttackDamage();
         const kb = a.x + a.w/2 > pcx ? 1 : -1;
-        a.vx = kb * 4;
-        a.vy = -3;
-        a.onGround = false;
-        // Start fleeing
-        a.state = 'flee';
-        a.fleeTimer = 2000;
+
+        // In multiplayer, guest sends attack to host
+        if (isMultiplayer && !isHost) {
+          netSendAttackAnimal(i, damage, kb);
+        } else {
+          // Host or singleplayer: apply damage directly
+          a.health -= damage;
+          a.hurtTimer = 300;
+          a.vx = kb * 4;
+          a.vy = -3;
+          a.onGround = false;
+          a.state = 'flee';
+          a.fleeTimer = 2000;
+        }
         damageHeldTool();
         return true;
       }
