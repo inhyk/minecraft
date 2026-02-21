@@ -220,6 +220,7 @@ function attackAnimal() {
           a.onGround = false;
           a.state = 'flee';
           a.fleeTimer = 2000;
+          a.lastAttackerId = myId; // Track attacker for drops
         }
         damageHeldTool();
         return true;
@@ -230,25 +231,40 @@ function attackAnimal() {
 }
 
 function spawnAnimalDrops(a) {
+  // Collect drops
+  const drops = [];
   switch (a.type) {
     case ANIMAL_TYPE.PIG:
-      addToInventory(B.RAW_PORK);
-      if (Math.random() < 0.5) addToInventory(B.RAW_PORK);
+      drops.push(B.RAW_PORK);
+      if (Math.random() < 0.5) drops.push(B.RAW_PORK);
       break;
     case ANIMAL_TYPE.COW:
-      addToInventory(B.RAW_BEEF);
-      if (Math.random() < 0.5) addToInventory(B.RAW_BEEF);
-      addToInventory(B.LEATHER);
+      drops.push(B.RAW_BEEF);
+      if (Math.random() < 0.5) drops.push(B.RAW_BEEF);
+      drops.push(B.LEATHER);
       break;
     case ANIMAL_TYPE.CHICKEN:
-      addToInventory(B.RAW_CHICKEN);
-      addToInventory(B.FEATHER);
-      if (Math.random() < 0.3) addToInventory(B.FEATHER);
+      drops.push(B.RAW_CHICKEN);
+      drops.push(B.FEATHER);
+      if (Math.random() < 0.3) drops.push(B.FEATHER);
       break;
     case ANIMAL_TYPE.SHEEP:
-      addToInventory(B.WOOL);
-      if (Math.random() < 0.7) addToInventory(B.WOOL);
+      drops.push(B.WOOL);
+      if (Math.random() < 0.7) drops.push(B.WOOL);
       break;
+  }
+
+  // Give drops to attacker
+  for (const item of drops) {
+    if (isMultiplayer && a.lastAttackerId) {
+      if (a.lastAttackerId === myId) {
+        addToInventory(item);
+      } else {
+        netSendMobDrop(a.lastAttackerId, item);
+      }
+    } else {
+      addToInventory(item);
+    }
   }
 }
 

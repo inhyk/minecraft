@@ -2,6 +2,50 @@
 // Monster System
 // ============================================================
 
+// Get all players for mob targeting (host only)
+function getAllPlayersForMobs() {
+  const players = [];
+
+  // Local player
+  players.push({
+    id: myId,
+    x: player.x,
+    y: player.y,
+    w: player.w,
+    h: player.h,
+    isLocal: true
+  });
+
+  // Other players in multiplayer
+  if (isMultiplayer) {
+    for (const [id, p] of Object.entries(otherPlayers)) {
+      players.push({
+        id: id,
+        x: p.x,
+        y: p.y,
+        w: BLOCK_SIZE * 0.6,
+        h: BLOCK_SIZE * 1.7,
+        isLocal: false
+      });
+    }
+  }
+
+  return players;
+}
+
+// Attack a player (called by mobs)
+function attackPlayerByMob(targetPlayer, damage, knockbackDir) {
+  if (targetPlayer.isLocal) {
+    // Local player (host)
+    if (playerHurtTimer <= 0 && playerDeathTimer <= 0) {
+      damagePlayer(damage);
+    }
+  } else {
+    // Remote player - send damage event
+    netSendDamagePlayer(targetPlayer.id, damage, knockbackDir);
+  }
+}
+
 function createMob(type, x, y) {
   return {
     type,
@@ -78,16 +122,31 @@ function spawnMobs(dt) {
 
 function updateMobs(dt) {
   const t = Math.min(dt, 50) / TICK_RATE;
-  const pcx = player.x + player.w / 2;
-  const pcy = player.y + player.h / 2;
+
+  // Get all players (local + others) for multiplayer host
+  const allPlayers = getAllPlayersForMobs();
 
   for (let i = mobs.length - 1; i >= 0; i--) {
     const m = mobs[i];
     const mcx = m.x + m.w / 2;
     const mcy = m.y + m.h / 2;
-    const dx = pcx - mcx;
-    const dy = pcy - mcy;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Find closest player
+    let closestPlayer = null;
+    let closestDist = Infinity;
+    for (const p of allPlayers) {
+      const pcx = p.x + p.w / 2;
+      const pcy = p.y + p.h / 2;
+      const d = Math.sqrt((pcx - mcx) ** 2 + (pcy - mcy) ** 2);
+      if (d < closestDist) {
+        closestDist = d;
+        closestPlayer = p;
+      }
+    }
+
+    const dist = closestDist;
+    const dx = closestPlayer ? (closestPlayer.x + closestPlayer.w / 2 - mcx) : 0;
+    const dy = closestPlayer ? (closestPlayer.y + closestPlayer.h / 2 - mcy) : 0;
 
     m.hurtTimer = Math.max(0, m.hurtTimer - dt);
     m.despawnTimer += dt;
@@ -112,14 +171,14 @@ function updateMobs(dt) {
       if (dist < detectRange) m.state = 'chase';
     }
 
-    if (m.state === 'chase') {
+    if (m.state === 'chase' && closestPlayer) {
       m.facing = dx > 0 ? 1 : -1;
 
       if (m.type === MOB_TYPE.ZOMBIE) {
         m.vx = m.facing * 1.5 * t;
-        // Attack player on contact
-        if (dist < BLOCK_SIZE * 1.2 && playerHurtTimer <= 0 && playerDeathTimer <= 0) {
-          damagePlayer(1.5);
+        // Attack closest player on contact
+        if (dist < BLOCK_SIZE * 1.2) {
+          attackPlayerByMob(closestPlayer, 1.5, m.facing);
         }
       }
 
@@ -134,7 +193,7 @@ function updateMobs(dt) {
       }
 
       if (m.type === MOB_TYPE.SKELETON) {
-        // Keep distance, shoot
+        // Keep distance, shoot at closest player
         if (dist < BLOCK_SIZE * 6) {
           m.vx = -m.facing * 1.0 * t; // back away
         } else if (dist > BLOCK_SIZE * 12) {
@@ -144,7 +203,9 @@ function updateMobs(dt) {
         }
         m.shootCooldown -= dt;
         if (m.shootCooldown <= 0 && dist < BLOCK_SIZE * 16) {
-          shootArrow(m, pcx, pcy);
+          const targetX = closestPlayer.x + closestPlayer.w / 2;
+          const targetY = closestPlayer.y + closestPlayer.h / 2;
+          shootArrow(m, targetX, targetY);
           m.shootCooldown = 2000;
         }
       }
@@ -256,11 +317,15 @@ function creeperExplode(m) {
     }
   }
 
-  // Damage player if close
-  const dist = Math.sqrt((player.x + player.w/2 - m.x - m.w/2)**2 + (player.y + player.h/2 - m.y - m.h/2)**2);
-  if (dist < BLOCK_SIZE * 4) {
-    const dmg = Math.max(1, 8 - dist / BLOCK_SIZE);
-    damagePlayer(dmg);
+  // Damage all players if close
+  const allPlayers = getAllPlayersForMobs();
+  for (const p of allPlayers) {
+    const dist = Math.sqrt((p.x + p.w/2 - m.x - m.w/2)**2 + (p.y + p.h/2 - m.y - m.h/2)**2);
+    if (dist < BLOCK_SIZE * 4) {
+      const dmg = Math.max(1, 8 - dist / BLOCK_SIZE);
+      const kb = (p.x + p.w/2) > (m.x + m.w/2) ? 1 : -1;
+      attackPlayerByMob(p, dmg, kb);
+    }
   }
 
   // Explosion particles
@@ -293,6 +358,8 @@ function shootArrow(m, targetX, targetY) {
 
 function updateArrows(dt) {
   const t = Math.min(dt, 50) / TICK_RATE;
+  const allPlayers = getAllPlayersForMobs();
+
   for (let i = arrows.length - 1; i >= 0; i--) {
     const a = arrows[i];
     a.x += a.vx * t;
@@ -305,12 +372,18 @@ function updateArrows(dt) {
     const by = Math.floor(a.y / BLOCK_SIZE);
     if (isSolid(bx, by)) { arrows.splice(i, 1); continue; }
 
-    // Hit player
-    if (a.x > player.x && a.x < player.x + player.w &&
-        a.y > player.y && a.y < player.y + player.h) {
-      damagePlayer(1.5);
-      arrows.splice(i, 1); continue;
+    // Hit any player
+    let hitPlayer = false;
+    for (const p of allPlayers) {
+      if (a.x > p.x && a.x < p.x + p.w &&
+          a.y > p.y && a.y < p.y + p.h) {
+        const kb = a.vx > 0 ? 1 : -1;
+        attackPlayerByMob(p, 1.5, kb);
+        hitPlayer = true;
+        break;
+      }
     }
+    if (hitPlayer) { arrows.splice(i, 1); continue; }
 
     if (a.life <= 0) { arrows.splice(i, 1); }
   }
@@ -343,6 +416,7 @@ function attackMob() {
           m.vx = kb * 5;
           m.vy = -4;
           m.onGround = false;
+          m.lastAttackerId = myId; // Track attacker for drops
         }
         damageHeldTool();
         return true; // hit one mob only
@@ -353,11 +427,28 @@ function attackMob() {
 }
 
 function spawnMobDrops(m) {
-  // Drop items near where mob died
+  // Determine drop
+  let dropItem = null;
   if (m.type === MOB_TYPE.ZOMBIE) {
-    if (Math.random() < 0.5) addToInventory(B.IRON_ORE);
+    if (Math.random() < 0.5) dropItem = B.IRON_ORE;
   } else if (m.type === MOB_TYPE.SKELETON) {
-    if (Math.random() < 0.4) addToInventory(B.COAL_ORE);
+    if (Math.random() < 0.4) dropItem = B.COAL_ORE;
+  }
+
+  if (!dropItem) return;
+
+  // In multiplayer, send drop to attacker
+  if (isMultiplayer && m.lastAttackerId) {
+    if (m.lastAttackerId === myId) {
+      // Host killed it, add to own inventory
+      addToInventory(dropItem);
+    } else {
+      // Guest killed it, send to that player
+      netSendMobDrop(m.lastAttackerId, dropItem);
+    }
+  } else {
+    // Singleplayer or no attacker tracked
+    addToInventory(dropItem);
   }
 }
 

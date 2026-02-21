@@ -156,6 +156,14 @@ async function joinChannel(roomCode, name) {
     handlePickupItem(payload);
   });
 
+  realtimeChannel.on('broadcast', { event: 'mob_drop' }, ({ payload }) => {
+    handleMobDrop(payload);
+  });
+
+  realtimeChannel.on('broadcast', { event: 'damage_player' }, ({ payload }) => {
+    handleDamagePlayer(payload);
+  });
+
   // Subscribe to channel
   await realtimeChannel.subscribe(async (status) => {
     if (status === 'SUBSCRIBED') {
@@ -276,7 +284,7 @@ function handleChat(payload) {
 function handleAttackMob(payload) {
   // Only host processes attacks
   if (!isHost) return;
-  const { mobIndex, damage, knockbackDir } = payload;
+  const { mobIndex, damage, knockbackDir, attackerId } = payload;
   if (mobIndex >= 0 && mobIndex < mobs.length) {
     const m = mobs[mobIndex];
     m.health -= damage;
@@ -284,13 +292,14 @@ function handleAttackMob(payload) {
     m.vx = knockbackDir * 5;
     m.vy = -4;
     m.onGround = false;
+    m.lastAttackerId = attackerId; // Track who attacked
   }
 }
 
 function handleAttackAnimal(payload) {
   // Only host processes attacks
   if (!isHost) return;
-  const { animalIndex, damage, knockbackDir } = payload;
+  const { animalIndex, damage, knockbackDir, attackerId } = payload;
   if (animalIndex >= 0 && animalIndex < animals.length) {
     const a = animals[animalIndex];
     a.health -= damage;
@@ -300,6 +309,7 @@ function handleAttackAnimal(payload) {
     a.onGround = false;
     a.state = 'flee';
     a.fleeTimer = 3000;
+    a.lastAttackerId = attackerId; // Track who attacked
   }
 }
 
@@ -319,6 +329,29 @@ function handlePickupItem(payload) {
   const { index } = payload;
   if (index >= 0 && index < droppedItems.length) {
     droppedItems.splice(index, 1);
+  }
+}
+
+function handleMobDrop(payload) {
+  // Receive drop from host (for player who killed the mob)
+  const { targetId, itemType } = payload;
+  if (targetId === myId) {
+    addToInventory(itemType);
+  }
+}
+
+function handleDamagePlayer(payload) {
+  // Receive damage from host (mob attacked us)
+  const { targetId, damage, knockbackDir } = payload;
+  if (targetId === myId && playerHurtTimer <= 0 && playerDeathTimer <= 0) {
+    player.health -= damage;
+    playerHurtTimer = 500;
+    player.vx = knockbackDir * 6;
+    player.vy = -4;
+    if (player.health <= 0) {
+      player.health = 0;
+      playerDeathTimer = 3000;
+    }
   }
 }
 
@@ -397,7 +430,7 @@ function netSendAttackMob(mobIndex, damage, knockbackDir) {
   realtimeChannel.send({
     type: 'broadcast',
     event: 'attack_mob',
-    payload: { mobIndex, damage, knockbackDir }
+    payload: { mobIndex, damage, knockbackDir, attackerId: myId }
   });
 }
 
@@ -407,7 +440,7 @@ function netSendAttackAnimal(animalIndex, damage, knockbackDir) {
   realtimeChannel.send({
     type: 'broadcast',
     event: 'attack_animal',
-    payload: { animalIndex, damage, knockbackDir }
+    payload: { animalIndex, damage, knockbackDir, attackerId: myId }
   });
 }
 
@@ -435,6 +468,26 @@ function netSendPickupItem(index) {
     type: 'broadcast',
     event: 'pickup_item',
     payload: { index }
+  });
+}
+
+function netSendMobDrop(targetId, itemType) {
+  if (!isMultiplayer || !realtimeChannel) return;
+
+  realtimeChannel.send({
+    type: 'broadcast',
+    event: 'mob_drop',
+    payload: { targetId, itemType }
+  });
+}
+
+function netSendDamagePlayer(targetId, damage, knockbackDir) {
+  if (!isMultiplayer || !realtimeChannel) return;
+
+  realtimeChannel.send({
+    type: 'broadcast',
+    event: 'damage_player',
+    payload: { targetId, damage, knockbackDir }
   });
 }
 
