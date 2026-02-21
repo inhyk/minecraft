@@ -50,19 +50,20 @@ let tooltipText = '';
 
 // Multiplayer system state
 let isMultiplayer = false;
-let ws = null;
+let realtimeChannel = null;
+let currentSession = null;
 let myId = null;
 let isHost = false;
 let otherPlayers = {}; // id -> { name, color, x, y, facing, walkFrame, health, selectedSlot }
 let netSendTimer = 0;
 let mobSyncTimer = 0;
-let serverAddress = 'localhost:3000';
 let playerName = 'Player';
-let connectInput = 'server'; // 'server' or 'name'
 let connectError = '';
 let chatMessages = [];
 let chatInput = '';
 let chatOpen = false;
+let connectMode = 'join'; // 'create' or 'join'
+let currentRoomCode = ''; // Room code for display
 
 // Animal system state
 let animals = [];
@@ -74,6 +75,6 @@ let particles = [];
 // Title screen
 let titleButtons = {};
 
-// Connect screen - auto-detect server address from current URL
-let connectFields = { server: location.host || 'localhost:3000', name: 'Player' };
+// Connect screen
+let connectFields = { roomCode: '', name: 'Player' };
 let connectFocus = 'name';

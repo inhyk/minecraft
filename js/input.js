@@ -5,11 +5,32 @@
 window.addEventListener('keydown', e => {
   // Connect screen text input
   if (gameState === STATE.CONNECT) {
-    if (e.code === 'Tab') { e.preventDefault(); connectFocus = connectFocus === 'server' ? 'name' : 'server'; return; }
-    if (e.code === 'Enter') { const addr = connectFields.server.trim(); const name = connectFields.name.trim() || 'Player'; if (addr) connectToServer(addr, name); return; }
+    if (e.code === 'Tab') {
+      e.preventDefault();
+      if (connectMode === 'join') {
+        connectFocus = connectFocus === 'roomCode' ? 'name' : 'roomCode';
+      }
+      return;
+    }
+    if (e.code === 'Enter') {
+      const name = connectFields.name.trim() || 'Player';
+      if (connectMode === 'create') {
+        createRoom(name);
+      } else {
+        const roomCode = connectFields.roomCode.trim().toUpperCase();
+        if (roomCode) joinRoom(roomCode, name);
+      }
+      return;
+    }
     if (e.code === 'Escape') { gameState = STATE.TITLE; initTitle(); return; }
     if (e.code === 'Backspace') { e.preventDefault(); connectFields[connectFocus] = connectFields[connectFocus].slice(0, -1); return; }
-    if (e.key.length === 1 && connectFields[connectFocus].length < 40) { connectFields[connectFocus] += e.key; return; }
+    const maxLen = connectFocus === 'roomCode' ? 8 : 16;
+    if (e.key.length === 1 && connectFields[connectFocus].length < maxLen) {
+      let char = e.key;
+      if (connectFocus === 'roomCode') char = char.toUpperCase();
+      connectFields[connectFocus] += char;
+      return;
+    }
     return;
   }
 

@@ -107,7 +107,58 @@ function drawTitle() {
   ctx.fillText('Minecraft 2D v1.0', 8, canvas.height - 8);
   ctx.textAlign = 'right';
   ctx.fillText('Made with Canvas', canvas.width - 8, canvas.height - 8);
+
+  // Google Login Button (top right)
+  drawGoogleAuthButton();
 }
+
+function drawGoogleAuthButton() {
+  const btnW = 160;
+  const btnH = 36;
+  const btnX = canvas.width - btnW - 15;
+  const btnY = 15;
+
+  const hovered = mouse.x >= btnX && mouse.x <= btnX + btnW &&
+                  mouse.y >= btnY && mouse.y <= btnY + btnH;
+
+  titleButtons['google_auth'] = { x: btnX, y: btnY, w: btnW, h: btnH };
+
+  if (currentUser) {
+    // Logged in - show user info and logout
+    ctx.fillStyle = hovered ? 'rgba(100, 60, 60, 0.9)' : 'rgba(60, 60, 60, 0.9)';
+    ctx.fillRect(btnX, btnY, btnW, btnH);
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(btnX, btnY, btnW, btnH);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    const displayName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User';
+    const shortName = displayName.length > 12 ? displayName.substring(0, 12) + '...' : displayName;
+    ctx.fillText(shortName, btnX + btnW/2, btnY + 15);
+    ctx.fillStyle = '#aaa';
+    ctx.font = '10px monospace';
+    ctx.fillText('Click to logout', btnX + btnW/2, btnY + 28);
+  } else {
+    // Not logged in - show Google sign in
+    ctx.fillStyle = hovered ? 'rgba(66, 133, 244, 0.95)' : 'rgba(66, 133, 244, 0.85)';
+    ctx.fillRect(btnX, btnY, btnW, btnH);
+    ctx.strokeStyle = '#5a9cf0';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(btnX, btnY, btnW, btnH);
+
+    // Google icon (simple G)
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('G', btnX + 12, btnY + 24);
+
+    // Text
+    ctx.font = '13px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sign in with Google', btnX + btnW/2 + 8, btnY + 23);
+  }
 
 function drawMinecraftText(text, x, y, scale) {
   ctx.font = `bold ${scale * 12}px monospace`;
@@ -177,6 +228,13 @@ function handleTitleClick() {
         gameState = STATE.CONNECT;
         connectError = '';
       }
+      if (id === 'google_auth') {
+        if (currentUser) {
+          signOut();
+        } else {
+          signInWithGoogle();
+        }
+      }
     }
   }
 }
@@ -207,27 +265,73 @@ function drawConnectScreen() {
   // Title
   drawMinecraftText("MULTIPLAYER", cx, cy - 140, 3.5);
 
+  // Mode tabs
+  const tabY = cy - 90;
+  const tabW = 140;
+  const tabH = 35;
+
+  // Create Room tab
+  const createX = cx - tabW - 5;
+  const createHovered = mouse.x >= createX && mouse.x <= createX + tabW &&
+                        mouse.y >= tabY && mouse.y <= tabY + tabH;
+  ctx.fillStyle = connectMode === 'create' ? '#4a4' : (createHovered ? '#555' : '#333');
+  ctx.fillRect(createX, tabY, tabW, tabH);
+  ctx.strokeStyle = connectMode === 'create' ? '#6c6' : '#555';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(createX, tabY, tabW, tabH);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('Create Room', createX + tabW/2, tabY + 23);
+  titleButtons['tab_create'] = { x: createX, y: tabY, w: tabW, h: tabH };
+
+  // Join Room tab
+  const joinX = cx + 5;
+  const joinHovered = mouse.x >= joinX && mouse.x <= joinX + tabW &&
+                      mouse.y >= tabY && mouse.y <= tabY + tabH;
+  ctx.fillStyle = connectMode === 'join' ? '#4a4' : (joinHovered ? '#555' : '#333');
+  ctx.fillRect(joinX, tabY, tabW, tabH);
+  ctx.strokeStyle = connectMode === 'join' ? '#6c6' : '#555';
+  ctx.strokeRect(joinX, tabY, tabW, tabH);
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Join Room', joinX + tabW/2, tabY + 23);
+  titleButtons['tab_join'] = { x: joinX, y: tabY, w: tabW, h: tabH };
+
   // Input fields
-  drawInputField('Server Address:', connectFields.server, cx, cy - 50, connectFocus === 'server');
-  drawInputField('Player Name:', connectFields.name, cx, cy + 20, connectFocus === 'name');
+  drawInputField('Player Name:', connectFields.name, cx, cy - 30, connectFocus === 'name');
+
+  // Room code field (only in join mode)
+  if (connectMode === 'join') {
+    drawInputField('Room Code:', connectFields.roomCode, cx, cy + 40, connectFocus === 'roomCode');
+  }
 
   // Error
   if (connectError) {
     ctx.fillStyle = '#f44';
     ctx.font = '14px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(connectError, cx, cy + 75);
+    ctx.fillText(connectError, cx, connectMode === 'join' ? cy + 95 : cy + 30);
   }
 
-  // Buttons
-  drawTitleButton('Connect', cx, cy + 115, 250, 45, 'mp_connect');
-  drawTitleButton('Back', cx, cy + 170, 250, 45, 'mp_back');
+  // Action button
+  const btnY = connectMode === 'join' ? cy + 125 : cy + 50;
+  const btnText = connectMode === 'create' ? 'Create Room' : 'Join Room';
+  drawTitleButton(btnText, cx, btnY, 250, 45, 'mp_connect');
+  drawTitleButton('Back', cx, btnY + 55, 250, 45, 'mp_back');
 
   // Instructions
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
   ctx.font = '12px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('Tab: Switch field  |  Enter: Connect', cx, cy + 210);
+  const instrY = btnY + 100;
+  if (connectMode === 'join') {
+    ctx.fillText('Tab: Switch field  |  Enter: Join', cx, instrY);
+  } else {
+    ctx.fillText('Enter: Create Room', cx, instrY);
+  }
+
+  // Google Login Button (top right)
+  drawGoogleAuthButton();
 }
 
 function drawInputField(label, value, x, y, focused) {
@@ -254,15 +358,36 @@ function handleConnectClick() {
   for (const [id, btn] of Object.entries(titleButtons)) {
     if (mouse.x >= btn.x && mouse.x <= btn.x + btn.w &&
         mouse.y >= btn.y && mouse.y <= btn.y + btn.h) {
+      if (id === 'tab_create') {
+        connectMode = 'create';
+        connectError = '';
+        return;
+      }
+      if (id === 'tab_join') {
+        connectMode = 'join';
+        connectError = '';
+        return;
+      }
       if (id === 'mp_connect') {
-        const addr = connectFields.server.trim();
         const name = connectFields.name.trim() || 'Player';
-        if (!addr) { connectError = 'Enter server address'; return; }
-        connectToServer(addr, name);
+        if (connectMode === 'create') {
+          createRoom(name);
+        } else {
+          const roomCode = connectFields.roomCode.trim().toUpperCase();
+          if (!roomCode) { connectError = 'Enter room code'; return; }
+          joinRoom(roomCode, name);
+        }
       }
       if (id === 'mp_back') {
         gameState = STATE.TITLE;
         initTitle();
+      }
+      if (id === 'google_auth') {
+        if (currentUser) {
+          signOut();
+        } else {
+          signInWithGoogle();
+        }
       }
     }
   }

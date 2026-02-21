@@ -14,11 +14,15 @@ canvas.inventory-open { cursor: default; }
 <body>
 <canvas id="game"></canvas>
 
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <!-- Game Scripts (load order matters) -->
 <script src="js/config.js"></script>
 <script src="js/state.js"></script>
 <script src="js/blocks.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/supabase.js"></script>
 <script src="js/village.js"></script>
 <script src="js/villager.js"></script>
 <script src="js/world.js"></script>
