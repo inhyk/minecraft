@@ -159,6 +159,7 @@ function drawGoogleAuthButton() {
     ctx.textAlign = 'center';
     ctx.fillText('Sign in with Google', btnX + btnW/2 + 8, btnY + 23);
   }
+}
 
 function drawMinecraftText(text, x, y, scale) {
   ctx.font = `bold ${scale * 12}px monospace`;
