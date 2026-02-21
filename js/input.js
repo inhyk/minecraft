@@ -117,10 +117,12 @@ canvas.addEventListener('mousedown', e => {
     } else if (gameState === STATE.PLAYING && inventoryOpen) {
       handleInventoryClick(0, e.shiftKey);
     } else if (gameState === STATE.PLAYING) {
-      // Try to interact with villager first, then attack mob/animal
+      // Try to interact with villager first, then attack player/mob/animal
       if (!tryInteractVillager(mouse.x, mouse.y)) {
-        if (!attackMob()) {
-          attackAnimal();
+        if (!attackOtherPlayer()) {
+          if (!attackMob()) {
+            attackAnimal();
+          }
         }
       }
     }

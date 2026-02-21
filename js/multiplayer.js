@@ -164,6 +164,10 @@ async function joinChannel(roomCode, name) {
     handleDamagePlayer(payload);
   });
 
+  realtimeChannel.on('broadcast', { event: 'pvp_attack' }, ({ payload }) => {
+    handlePvpAttack(payload);
+  });
+
   // Subscribe to channel
   await realtimeChannel.subscribe(async (status) => {
     if (status === 'SUBSCRIBED') {
@@ -355,6 +359,24 @@ function handleDamagePlayer(payload) {
   }
 }
 
+function handlePvpAttack(payload) {
+  // Receive PvP attack from another player
+  const { targetId, attackerId, damage, knockbackDir } = payload;
+  if (targetId === myId && playerHurtTimer <= 0 && playerDeathTimer <= 0) {
+    player.health -= damage;
+    playerHurtTimer = 500;
+    player.vx = knockbackDir * 8;
+    player.vy = -5;
+    if (player.health <= 0) {
+      player.health = 0;
+      playerDeathTimer = 3000;
+      // Notify attacker gets the kill
+      const attackerName = otherPlayers[attackerId]?.name || 'Player';
+      addChatMessage('System', attackerName + ' killed you!');
+    }
+  }
+}
+
 // ─── Message Send Functions ────────────────────────────────
 function netSendPosition() {
   if (!isMultiplayer || !realtimeChannel) return;
@@ -489,6 +511,44 @@ function netSendDamagePlayer(targetId, damage, knockbackDir) {
     event: 'damage_player',
     payload: { targetId, damage, knockbackDir }
   });
+}
+
+function netSendPvpAttack(targetId, damage, knockbackDir) {
+  if (!isMultiplayer || !realtimeChannel) return;
+
+  realtimeChannel.send({
+    type: 'broadcast',
+    event: 'pvp_attack',
+    payload: { targetId, attackerId: myId, damage, knockbackDir }
+  });
+}
+
+// Attack another player (PvP)
+function attackOtherPlayer() {
+  if (!isMultiplayer || inventoryOpen || playerDeathTimer > 0) return false;
+
+  const clickX = mouse.x + camera.x;
+  const clickY = mouse.y + camera.y;
+  const pcx = player.x + player.w / 2;
+  const pcy = player.y + player.h / 2;
+
+  for (const [id, p] of Object.entries(otherPlayers)) {
+    const pw = BLOCK_SIZE * 0.6;
+    const ph = BLOCK_SIZE * 1.7;
+
+    if (clickX >= p.x && clickX <= p.x + pw &&
+        clickY >= p.y && clickY <= p.y + ph) {
+      const dist = Math.sqrt((pcx - p.x - pw/2)**2 + (pcy - p.y - ph/2)**2);
+      if (dist < BLOCK_SIZE * 5) {
+        const damage = getAttackDamage();
+        const kb = (p.x + pw/2) > pcx ? 1 : -1;
+        netSendPvpAttack(id, damage, kb);
+        damageHeldTool();
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 // ─── Network Update ───────────────────────────────────────

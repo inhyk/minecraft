@@ -74,14 +74,28 @@ function generateChunkTerrain(cx) {
         chunk[y * CHUNK_SIZE + lx] = B.DIRT;
       } else {
         chunk[y * CHUNK_SIZE + lx] = B.STONE;
-        // Ores (deterministic per position)
+        // Ores (deterministic per position, each ore has its own hash)
         const depth = y - surfaceH;
-        const r = posHash2(x, y, 0);
-        if (depth > 5 && r < 0.03) chunk[y * CHUNK_SIZE + lx] = B.COAL_ORE;
-        else if (depth > 15 && r < 0.015) chunk[y * CHUNK_SIZE + lx] = B.IRON_ORE;
-        else if (depth > 30 && r < 0.008) chunk[y * CHUNK_SIZE + lx] = B.GOLD_ORE;
-        else if (depth > 8 && r < 0.02) chunk[y * CHUNK_SIZE + lx] = B.COPPER_ORE;
-        else if (depth > 45 && r < 0.004) chunk[y * CHUNK_SIZE + lx] = B.DIAMOND_ORE;
+        // Diamond (deepest, rarest) - depth 40+
+        if (depth > 40 && posHash2(x, y, 5) < 0.008) {
+          chunk[y * CHUNK_SIZE + lx] = B.DIAMOND_ORE;
+        }
+        // Gold - depth 25+
+        else if (depth > 25 && posHash2(x, y, 4) < 0.012) {
+          chunk[y * CHUNK_SIZE + lx] = B.GOLD_ORE;
+        }
+        // Iron - depth 10+
+        else if (depth > 10 && posHash2(x, y, 3) < 0.025) {
+          chunk[y * CHUNK_SIZE + lx] = B.IRON_ORE;
+        }
+        // Copper - depth 6+
+        else if (depth > 6 && posHash2(x, y, 2) < 0.025) {
+          chunk[y * CHUNK_SIZE + lx] = B.COPPER_ORE;
+        }
+        // Coal - depth 4+
+        else if (depth > 4 && posHash2(x, y, 1) < 0.035) {
+          chunk[y * CHUNK_SIZE + lx] = B.COAL_ORE;
+        }
       }
     }
 
