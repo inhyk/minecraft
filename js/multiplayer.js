@@ -148,6 +148,14 @@ async function joinChannel(roomCode, name) {
     handleAttackAnimal(payload);
   });
 
+  realtimeChannel.on('broadcast', { event: 'drop_item' }, ({ payload }) => {
+    handleDropItem(payload);
+  });
+
+  realtimeChannel.on('broadcast', { event: 'pickup_item' }, ({ payload }) => {
+    handlePickupItem(payload);
+  });
+
   // Subscribe to channel
   await realtimeChannel.subscribe(async (status) => {
     if (status === 'SUBSCRIBED') {
@@ -295,6 +303,25 @@ function handleAttackAnimal(payload) {
   }
 }
 
+function handleDropItem(payload) {
+  const { x, y, vx, vy, type, count } = payload;
+  const dropped = {
+    x, y, vx, vy, type, count,
+    w: 16, h: 16,
+    onGround: false,
+    pickupDelay: 500,
+    life: 300000
+  };
+  droppedItems.push(dropped);
+}
+
+function handlePickupItem(payload) {
+  const { index } = payload;
+  if (index >= 0 && index < droppedItems.length) {
+    droppedItems.splice(index, 1);
+  }
+}
+
 // ─── Message Send Functions ────────────────────────────────
 function netSendPosition() {
   if (!isMultiplayer || !realtimeChannel) return;
@@ -384,6 +411,33 @@ function netSendAttackAnimal(animalIndex, damage, knockbackDir) {
   });
 }
 
+function netSendDropItem(dropped) {
+  if (!isMultiplayer || !realtimeChannel) return;
+
+  realtimeChannel.send({
+    type: 'broadcast',
+    event: 'drop_item',
+    payload: {
+      x: dropped.x,
+      y: dropped.y,
+      vx: dropped.vx,
+      vy: dropped.vy,
+      type: dropped.type,
+      count: dropped.count
+    }
+  });
+}
+
+function netSendPickupItem(index) {
+  if (!isMultiplayer || !realtimeChannel) return;
+
+  realtimeChannel.send({
+    type: 'broadcast',
+    event: 'pickup_item',
+    payload: { index }
+  });
+}
+
 // ─── Network Update ───────────────────────────────────────
 function updateNetwork(dt) {
   if (!isMultiplayer || !realtimeChannel) return;
@@ -422,6 +476,7 @@ function resetGameState() {
   animals = [];
   arrows = [];
   particles = [];
+  droppedItems = [];
   miningProgress = 0;
   miningTarget = null;
   mobSpawnTimer = 0;

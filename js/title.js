@@ -409,6 +409,7 @@ function startGame() {
   mobs = [];
   animals = [];
   arrows = [];
+  droppedItems = [];
   miningProgress = 0;
   miningTarget = null;
   mobSpawnTimer = 0;

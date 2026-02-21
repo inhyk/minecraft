@@ -36,11 +36,13 @@ function gameLoop(timestamp) {
       updateVillagers(dt);
     }
     updateArrows(dt);
+    updateDroppedItems(dt);
     updateNetwork(dt);
 
     drawSky();
     drawClouds();
     drawWorld();
+    drawDroppedItems();
     drawParticles();
     drawArrows();
     drawMobs();

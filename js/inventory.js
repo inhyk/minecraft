@@ -705,3 +705,135 @@ function quickMoveCraftItem(craftIdx) {
     }
   }
 }
+
+// ============================================================
+// Dropped Items System
+// ============================================================
+
+function createDroppedItem(x, y, type, count) {
+  return {
+    x: x,
+    y: y,
+    vx: (Math.random() - 0.5) * 3,
+    vy: -3 - Math.random() * 2,
+    type: type,
+    count: count,
+    w: 16,
+    h: 16,
+    onGround: false,
+    pickupDelay: 500, // ms before can be picked up
+    life: 300000 // 5 minutes
+  };
+}
+
+function dropItem(dropOne) {
+  if (!player) return;
+  const slot = player.selectedSlot;
+  const item = player.inventory[slot];
+  if (!item) return;
+
+  const dropCount = dropOne ? 1 : item.count;
+  const dropped = createDroppedItem(
+    player.x + player.w / 2,
+    player.y + player.h / 2,
+    item.type,
+    dropCount
+  );
+  dropped.vx = player.facing * 3;
+  droppedItems.push(dropped);
+
+  // Update inventory
+  item.count -= dropCount;
+  if (item.count <= 0) {
+    player.inventory[slot] = null;
+  }
+
+  // Multiplayer sync
+  if (isMultiplayer) {
+    netSendDropItem(dropped);
+  }
+}
+
+function updateDroppedItems(dt) {
+  const gravity = 0.4;
+
+  for (let i = droppedItems.length - 1; i >= 0; i--) {
+    const item = droppedItems[i];
+
+    // Life timer
+    item.life -= dt;
+    if (item.life <= 0) {
+      droppedItems.splice(i, 1);
+      continue;
+    }
+
+    // Pickup delay
+    if (item.pickupDelay > 0) {
+      item.pickupDelay -= dt;
+    }
+
+    // Physics
+    if (!item.onGround) {
+      item.vy += gravity;
+      item.y += item.vy;
+      item.x += item.vx;
+      item.vx *= 0.95;
+
+      // Ground collision
+      const bx = Math.floor((item.x + item.w / 2) / BLOCK_SIZE);
+      const by = Math.floor((item.y + item.h) / BLOCK_SIZE);
+      if (getBlock(bx, by) !== B.AIR && getBlock(bx, by) !== B.WATER) {
+        item.y = by * BLOCK_SIZE - item.h;
+        item.vy = 0;
+        item.vx = 0;
+        item.onGround = true;
+      }
+    }
+
+    // Pickup by player
+    if (item.pickupDelay <= 0 && player) {
+      const pcx = player.x + player.w / 2;
+      const pcy = player.y + player.h / 2;
+      const icx = item.x + item.w / 2;
+      const icy = item.y + item.h / 2;
+      const dist = Math.sqrt((pcx - icx) ** 2 + (pcy - icy) ** 2);
+
+      if (dist < BLOCK_SIZE * 1.5) {
+        // Try to add to inventory
+        if (addToInventory(item.type, item.count)) {
+          droppedItems.splice(i, 1);
+          if (isMultiplayer) {
+            netSendPickupItem(i);
+          }
+        }
+      }
+    }
+  }
+}
+
+function drawDroppedItems() {
+  for (const item of droppedItems) {
+    // Bob animation
+    const bob = Math.sin(Date.now() / 200 + item.x) * 2;
+
+    ctx.save();
+    ctx.translate(
+      item.x - camera.x + item.w / 2,
+      item.y - camera.y + bob + item.h / 2
+    );
+
+    // Draw item
+    const size = 16;
+    drawBlock(-size / 2, -size / 2, item.type, size);
+
+    // Draw count if > 1
+    if (item.count > 1) {
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(item.count, size / 2, size / 2 + 3);
+    }
+
+    ctx.restore();
+  }
+}

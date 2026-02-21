@@ -72,6 +72,9 @@ let animalSpawnTimer = 0;
 // Particles
 let particles = [];
 
+// Dropped items on the ground
+let droppedItems = [];
+
 // Title screen
 let titleButtons = {};
 

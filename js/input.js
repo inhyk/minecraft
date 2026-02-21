@@ -66,6 +66,12 @@ window.addEventListener('keydown', e => {
       return;
     }
 
+    // Drop item with Q
+    if (e.code === 'KeyQ' && !inventoryOpen && !tradeOpen) {
+      dropItem(true); // Drop one item
+      return;
+    }
+
     // Close inventory with Escape, or go to title if not open
     if (e.code === 'Escape') {
       if (inventoryOpen) {
