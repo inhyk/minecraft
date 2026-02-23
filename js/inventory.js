@@ -1073,6 +1073,8 @@ function updateDroppedItems(dt) {
         // Try to add to inventory
         if (addToInventory(item.type, item.count)) {
           droppedItems.splice(i, 1);
+          // Sound effect
+          if (typeof playPickupSound === 'function') playPickupSound();
           if (isMultiplayer) {
             netSendPickupItem(i);
           }

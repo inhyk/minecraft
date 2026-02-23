@@ -483,6 +483,11 @@ function drawHUD() {
       }
     }
   }
+
+  // Music indicator
+  if (typeof drawMusicIndicator === 'function') {
+    drawMusicIndicator();
+  }
 }
 
 function drawHeart(x, y, size) {

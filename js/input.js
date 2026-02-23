@@ -125,6 +125,17 @@ window.addEventListener('keydown', e => {
       return;
     }
 
+    // Toggle music with M
+    if (e.code === 'KeyM' && !inventoryOpen && !tradeOpen && !chatOpen) {
+      if (typeof toggleMusic === 'function') {
+        const enabled = toggleMusic();
+        if (typeof addChatMessage === 'function') {
+          addChatMessage('System', enabled ? 'Music ON' : 'Music OFF');
+        }
+      }
+      return;
+    }
+
     // Close inventory with Escape, or go to title if not open
     if (e.code === 'Escape') {
       if (inventoryOpen) {
@@ -163,6 +174,10 @@ canvas.addEventListener('mousemove', e => {
 
 canvas.addEventListener('mousedown', e => {
   e.preventDefault();
+  // Initialize audio on first click (browser requirement)
+  if (typeof initAudio === 'function') {
+    initAudio();
+  }
   if (e.button === 0) {
     mouse.left = true;
     if (gameState === STATE.TITLE) {

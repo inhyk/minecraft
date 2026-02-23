@@ -162,6 +162,9 @@ function damagePlayer(amount) {
   player.health -= actualDamage;
   playerHurtTimer = 500; // invincibility frames
 
+  // Sound effect
+  if (typeof playHurtSound === 'function') playHurtSound();
+
   // Achievement for taking damage
   if (typeof onPlayerDamage === 'function') {
     onPlayerDamage(actualDamage);

@@ -305,6 +305,7 @@ function drawControlsScreen() {
     { category: 'Interface', items: [
       { key: 'Tab', action: 'Achievements' },
       { key: 'T', action: 'Open Chat (Multiplayer)' },
+      { key: 'M', action: 'Toggle Music' },
       { key: 'Escape', action: 'Close Menu / Exit Game' },
     ]},
     { category: 'Gameplay Tips', items: [

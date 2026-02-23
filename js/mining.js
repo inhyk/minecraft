@@ -58,6 +58,8 @@ function updateMining(dt) {
     miningProgress = 0;
     // Particles
     spawnBreakParticles(target.x, target.y, blockType);
+    // Sound effect
+    if (typeof playBlockBreakSound === 'function') playBlockBreakSound();
     // Damage held tool
     damageHeldTool();
     // Achievement check
@@ -159,6 +161,8 @@ function placeBlock() {
   netSendBlock(target.x, target.y, slot.type);
   slot.count--;
   if (slot.count <= 0) player.inventory[player.selectedSlot] = null;
+  // Sound effect
+  if (typeof playBlockPlaceSound === 'function') playBlockPlaceSound();
   // Achievement check
   onBlockPlaced();
 }

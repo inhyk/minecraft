@@ -484,6 +484,9 @@ function unlockAchievement(id) {
   // Add to notification queue
   achievementQueue.push(ACHIEVEMENTS[id]);
 
+  // Play achievement sound
+  if (typeof playAchievementSound === 'function') playAchievementSound();
+
   saveAchievements();
 }
 

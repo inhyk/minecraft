@@ -56,6 +56,7 @@ function gameLoop(timestamp) {
     if (typeof checkExplorationAchievements === 'function') checkExplorationAchievements();
     if (typeof checkArmorAchievements === 'function') checkArmorAchievements();
     if (typeof updateAutosave === 'function') updateAutosave(dt);
+    if (typeof updateMusic === 'function') updateMusic();
 
     drawSky();
     // Only draw clouds in Overworld
