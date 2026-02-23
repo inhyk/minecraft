@@ -47,7 +47,11 @@ function updateMining(dt) {
 
   if (miningProgress >= required) {
     // Break block
-    const drop = info.drop || blockType;
+    let drop = info.drop || blockType;
+    // Gravel has a chance to drop flint instead
+    if (blockType === B.GRAVEL && info.flintChance && Math.random() < info.flintChance) {
+      drop = B.FLINT;
+    }
     addToInventory(drop);
     setBlock(target.x, target.y, B.AIR);
     netSendBlock(target.x, target.y, B.AIR);
@@ -56,6 +60,8 @@ function updateMining(dt) {
     spawnBreakParticles(target.x, target.y, blockType);
     // Damage held tool
     damageHeldTool();
+    // Achievement check
+    onBlockMined(drop);
   }
 }
 
@@ -70,6 +76,11 @@ function eatFood() {
   player.health = Math.min(player.maxHealth, player.health + info.food);
   slot.count--;
   if (slot.count <= 0) player.inventory[player.selectedSlot] = null;
+
+  // Check survival achievement for full heal
+  if (typeof checkSurvivalAchievements === 'function') {
+    checkSurvivalAchievements();
+  }
 
   // Eating particles
   const px = player.x + player.w / 2;
@@ -103,6 +114,27 @@ function placeBlock() {
 
   const blockType = getBlock(target.x, target.y);
 
+  // Flint and steel - try to light portal
+  if (slot && slot.type === B.FLINT_AND_STEEL) {
+    if (blockType === B.AIR || blockType === B.OBSIDIAN) {
+      if (typeof useFlintAndSteel === 'function') {
+        useFlintAndSteel(target.x, target.y);
+      }
+    }
+    return;
+  }
+
+  // Eye of Ender - place in end portal frame
+  if (slot && slot.type === B.EYE_OF_ENDER && blockType === B.END_PORTAL_FRAME) {
+    // Activate end portal
+    if (typeof activateEndPortal === 'function') {
+      activateEndPortal(target.x, target.y);
+      slot.count--;
+      if (slot.count <= 0) player.inventory[player.selectedSlot] = null;
+    }
+    return;
+  }
+
   // Right-click on crafting table -> open 3x3 crafting
   if (blockType === B.CRAFT_TABLE) {
     openCraftingTable();
@@ -127,6 +159,8 @@ function placeBlock() {
   netSendBlock(target.x, target.y, slot.type);
   slot.count--;
   if (slot.count <= 0) player.inventory[player.selectedSlot] = null;
+  // Achievement check
+  onBlockPlaced();
 }
 
 function addToInventory(type) {

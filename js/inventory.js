@@ -177,6 +177,112 @@ const CRAFT_RECIPES = [
     null, B.STICK, null,
     null, B.STICK, null,
   ], output: { type: B.DIAMOND_SHOVEL, count: 1 } },
+
+  // ===== ARMOR - LEATHER =====
+  { pattern: '3x3', input: [
+    B.LEATHER, B.LEATHER, B.LEATHER,
+    B.LEATHER, null, B.LEATHER,
+    null, null, null,
+  ], output: { type: B.LEATHER_HELMET, count: 1 } },
+  { pattern: '3x3', input: [
+    B.LEATHER, null, B.LEATHER,
+    B.LEATHER, B.LEATHER, B.LEATHER,
+    B.LEATHER, B.LEATHER, B.LEATHER,
+  ], output: { type: B.LEATHER_CHESTPLATE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.LEATHER, B.LEATHER, B.LEATHER,
+    B.LEATHER, null, B.LEATHER,
+    B.LEATHER, null, B.LEATHER,
+  ], output: { type: B.LEATHER_LEGGINGS, count: 1 } },
+  { pattern: '3x3', input: [
+    B.LEATHER, null, B.LEATHER,
+    B.LEATHER, null, B.LEATHER,
+    null, null, null,
+  ], output: { type: B.LEATHER_BOOTS, count: 1 } },
+
+  // ===== ARMOR - IRON =====
+  { pattern: '3x3', input: [
+    B.IRON_ORE, B.IRON_ORE, B.IRON_ORE,
+    B.IRON_ORE, null, B.IRON_ORE,
+    null, null, null,
+  ], output: { type: B.IRON_HELMET, count: 1 } },
+  { pattern: '3x3', input: [
+    B.IRON_ORE, null, B.IRON_ORE,
+    B.IRON_ORE, B.IRON_ORE, B.IRON_ORE,
+    B.IRON_ORE, B.IRON_ORE, B.IRON_ORE,
+  ], output: { type: B.IRON_CHESTPLATE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.IRON_ORE, B.IRON_ORE, B.IRON_ORE,
+    B.IRON_ORE, null, B.IRON_ORE,
+    B.IRON_ORE, null, B.IRON_ORE,
+  ], output: { type: B.IRON_LEGGINGS, count: 1 } },
+  { pattern: '3x3', input: [
+    B.IRON_ORE, null, B.IRON_ORE,
+    B.IRON_ORE, null, B.IRON_ORE,
+    null, null, null,
+  ], output: { type: B.IRON_BOOTS, count: 1 } },
+
+  // ===== ARMOR - GOLD =====
+  { pattern: '3x3', input: [
+    B.GOLD_ORE, B.GOLD_ORE, B.GOLD_ORE,
+    B.GOLD_ORE, null, B.GOLD_ORE,
+    null, null, null,
+  ], output: { type: B.GOLD_HELMET, count: 1 } },
+  { pattern: '3x3', input: [
+    B.GOLD_ORE, null, B.GOLD_ORE,
+    B.GOLD_ORE, B.GOLD_ORE, B.GOLD_ORE,
+    B.GOLD_ORE, B.GOLD_ORE, B.GOLD_ORE,
+  ], output: { type: B.GOLD_CHESTPLATE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.GOLD_ORE, B.GOLD_ORE, B.GOLD_ORE,
+    B.GOLD_ORE, null, B.GOLD_ORE,
+    B.GOLD_ORE, null, B.GOLD_ORE,
+  ], output: { type: B.GOLD_LEGGINGS, count: 1 } },
+  { pattern: '3x3', input: [
+    B.GOLD_ORE, null, B.GOLD_ORE,
+    B.GOLD_ORE, null, B.GOLD_ORE,
+    null, null, null,
+  ], output: { type: B.GOLD_BOOTS, count: 1 } },
+
+  // ===== ARMOR - DIAMOND =====
+  { pattern: '3x3', input: [
+    B.DIAMOND_ORE, B.DIAMOND_ORE, B.DIAMOND_ORE,
+    B.DIAMOND_ORE, null, B.DIAMOND_ORE,
+    null, null, null,
+  ], output: { type: B.DIAMOND_HELMET, count: 1 } },
+  { pattern: '3x3', input: [
+    B.DIAMOND_ORE, null, B.DIAMOND_ORE,
+    B.DIAMOND_ORE, B.DIAMOND_ORE, B.DIAMOND_ORE,
+    B.DIAMOND_ORE, B.DIAMOND_ORE, B.DIAMOND_ORE,
+  ], output: { type: B.DIAMOND_CHESTPLATE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.DIAMOND_ORE, B.DIAMOND_ORE, B.DIAMOND_ORE,
+    B.DIAMOND_ORE, null, B.DIAMOND_ORE,
+    B.DIAMOND_ORE, null, B.DIAMOND_ORE,
+  ], output: { type: B.DIAMOND_LEGGINGS, count: 1 } },
+  { pattern: '3x3', input: [
+    B.DIAMOND_ORE, null, B.DIAMOND_ORE,
+    B.DIAMOND_ORE, null, B.DIAMOND_ORE,
+    null, null, null,
+  ], output: { type: B.DIAMOND_BOOTS, count: 1 } },
+
+  // ===== NETHER/END ITEMS =====
+  // Flint and Steel
+  { pattern: '2x2', input: [B.IRON_ORE, null, null, B.FLINT], output: { type: B.FLINT_AND_STEEL, count: 1 } },
+  { pattern: '2x2', input: [null, B.IRON_ORE, B.FLINT, null], output: { type: B.FLINT_AND_STEEL, count: 1 } },
+  // Blaze Powder (single)
+  { pattern: 'single', input: B.BLAZE_ROD, output: { type: B.BLAZE_POWDER, count: 2 } },
+  // Eye of Ender
+  { pattern: '2x2', input: [B.ENDER_PEARL, null, B.BLAZE_POWDER, null], output: { type: B.EYE_OF_ENDER, count: 1 } },
+  { pattern: '2x2', input: [null, B.ENDER_PEARL, null, B.BLAZE_POWDER], output: { type: B.EYE_OF_ENDER, count: 1 } },
+  // Gold ingot from nuggets (simplified)
+  { pattern: '3x3', input: [
+    B.GOLD_NUGGET, B.GOLD_NUGGET, B.GOLD_NUGGET,
+    B.GOLD_NUGGET, B.GOLD_NUGGET, B.GOLD_NUGGET,
+    B.GOLD_NUGGET, B.GOLD_NUGGET, B.GOLD_NUGGET,
+  ], output: { type: B.GOLD_ORE, count: 1 } },
+  // Obsidian crafting (water + lava simulation - using cobblestone as placeholder)
+  { pattern: '2x2', input: [B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE], output: { type: B.OBSIDIAN, count: 1 } },
 ];
 
 function checkCraftingRecipe() {
@@ -273,6 +379,8 @@ function craftItem() {
     }
   }
   checkCraftingRecipe();
+  // Achievement check
+  checkCraftAchievements(result.type);
   return result;
 }
 
@@ -322,15 +430,16 @@ function getInventoryLayout() {
   const windowW = totalW + 60;
   const craftRows = craftMode;
   const craftAreaH = craftRows * (INV_SLOT + INV_PAD) + 30;
-  const windowH = craftAreaH + 3 * (INV_SLOT + INV_PAD) + (INV_SLOT + INV_PAD) + 80;
+  const armorAreaH = 4 * (INV_SLOT + INV_PAD) + 20; // 4 armor slots
+  const windowH = craftAreaH + armorAreaH + 3 * (INV_SLOT + INV_PAD) + (INV_SLOT + INV_PAD) + 100;
   const ox = (canvas.width - windowW) / 2;
   const oy = (canvas.height - windowH) / 2;
-  return { ox, oy, windowW, windowH, totalW, craftAreaH };
+  return { ox, oy, windowW, windowH, totalW, craftAreaH, armorAreaH };
 }
 
 function drawInventory() {
   if (!inventoryOpen) return;
-  const { ox, oy, windowW, windowH, totalW, craftAreaH } = getInventoryLayout();
+  const { ox, oy, windowW, windowH, totalW, craftAreaH, armorAreaH } = getInventoryLayout();
   invSlotRects = [];
   hoveredSlot = -1;
   tooltipText = '';
@@ -405,8 +514,32 @@ function drawInventory() {
     ctx.fillText(`${name} x${craftOutput.count}`, outX + INV_SLOT / 2, outY + INV_SLOT + 14);
   }
 
+  // --- Armor Slots ---
+  const armorY = oy + craftAreaH + 10;
+  ctx.fillStyle = '#404040';
+  ctx.font = '13px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('Armor', slotStartX, armorY);
+
+  const armorSlotNames = ['helmet', 'chestplate', 'leggings', 'boots'];
+  const armorSlotLabels = ['H', 'C', 'L', 'B'];
+  for (let i = 0; i < 4; i++) {
+    const sx = slotStartX + i * (INV_SLOT + INV_PAD);
+    const sy = armorY + 8;
+    const slotId = { area: 'armor', index: i, slot: armorSlotNames[i] };
+    const armorItem = player && player.armor ? player.armor[armorSlotNames[i]] : null;
+    drawInvSlot(sx, sy, armorItem, slotId, false, false, armorSlotLabels[i]);
+  }
+
+  // Defense display
+  const totalDefense = typeof getTotalArmorDefense === 'function' ? getTotalArmorDefense() : 0;
+  ctx.fillStyle = '#404040';
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(`Defense: ${totalDefense}`, slotStartX + 4 * (INV_SLOT + INV_PAD) + 10, armorY + INV_SLOT / 2 + 12);
+
   // --- Main Inventory (3 rows of 9) ---
-  const mainY = oy + craftAreaH + 40;
+  const mainY = oy + craftAreaH + armorAreaH + 20;
   ctx.fillStyle = '#404040';
   ctx.font = '13px monospace';
   ctx.textAlign = 'left';
@@ -421,6 +554,16 @@ function drawInventory() {
       drawInvSlot(sx, sy, player.inventory[invIdx], slotId);
     }
   }
+
+  // --- Offhand Slot ---
+  const offhandY = armorY + 8;
+  const offhandX = slotStartX + 5 * (INV_SLOT + INV_PAD);
+  ctx.fillStyle = '#404040';
+  ctx.font = '13px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('Offhand', offhandX, armorY);
+  const offhandSlotId = { area: 'offhand', index: 0 };
+  drawInvSlot(offhandX, offhandY, player.offhand, offhandSlotId, false, false, 'O');
 
   // --- Hotbar ---
   const hotbarY = mainY + 3 * (INV_SLOT + INV_PAD) + 12;
@@ -471,10 +614,10 @@ function drawInventory() {
   ctx.font = '11px monospace';
   ctx.textAlign = 'center';
   const helpKey = craftMode === 3 ? 'E/ESC: Close' : 'E: Close';
-  ctx.fillText(`Left Click: Pick/Place  |  Right Click: Split  |  Shift+Click: Quick Move  |  ${helpKey}`, canvas.width / 2, oy + windowH + 20);
+  ctx.fillText(`Left Click: Pick/Place  |  Right Click: Split  |  Shift+Click: Quick Move  |  F: Swap Offhand  |  ${helpKey}`, canvas.width / 2, oy + windowH + 20);
 }
 
-function drawInvSlot(x, y, item, slotId, isOutput, isSelected) {
+function drawInvSlot(x, y, item, slotId, isOutput, isSelected, slotLabel) {
   const hovered = mouse.x >= x && mouse.x < x + INV_SLOT &&
                   mouse.y >= y && mouse.y < y + INV_SLOT;
 
@@ -487,11 +630,17 @@ function drawInvSlot(x, y, item, slotId, isOutput, isSelected) {
       const info = BLOCK_INFO[item.type];
       if (info && info.durability && item.durability !== undefined) {
         tooltipText = `${info.name} (${item.durability}/${info.durability})`;
+      } else if (info && info.defense) {
+        tooltipText = `${info.name} (Defense: ${info.defense})`;
       } else {
         tooltipText = info ? `${info.name} x${item.count}` : `Block ${item.type} x${item.count}`;
       }
     } else if (cursorItem) {
       tooltipText = '';
+    } else if (slotLabel) {
+      // Show slot type hint when empty
+      const slotNames = { H: 'Helmet', C: 'Chestplate', L: 'Leggings', B: 'Boots', O: 'Offhand (F to swap)' };
+      tooltipText = slotNames[slotLabel] || '';
     }
   }
 
@@ -523,6 +672,14 @@ function drawInvSlot(x, y, item, slotId, isOutput, isSelected) {
     ctx.fillRect(x + 2, y + 2, INV_SLOT - 4, INV_SLOT - 4);
   }
 
+  // Slot label for armor slots (when empty)
+  if (slotLabel && !item) {
+    ctx.fillStyle = 'rgba(100, 100, 100, 0.5)';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(slotLabel, x + INV_SLOT / 2, y + INV_SLOT / 2 + 6);
+  }
+
   // Item
   if (item) {
     const iconSize = INV_SLOT - 16;
@@ -551,6 +708,18 @@ function handleInventoryClick(button, shiftKey) {
 
   if (slotId.area === 'craft_output') {
     handleCraftOutputClick(button);
+    return;
+  }
+
+  // Handle armor slots
+  if (slotId.area === 'armor') {
+    handleArmorSlotClick(slotId.slot, button);
+    return;
+  }
+
+  // Handle offhand slot
+  if (slotId.area === 'offhand') {
+    handleOffhandSlotClick(button);
     return;
   }
 
@@ -651,6 +820,108 @@ function handleCraftOutputClick(button) {
       if (result) cursorItem.count += result.count;
     }
   }
+}
+
+function handleArmorSlotClick(slotName, button) {
+  const currentArmor = player.armor[slotName];
+
+  if (button === 0) {
+    // Left click: equip/unequip/swap
+    if (!cursorItem && currentArmor) {
+      // Pick up armor
+      cursorItem = { type: currentArmor.type, count: 1, durability: currentArmor.durability };
+      player.armor[slotName] = null;
+    } else if (cursorItem && !currentArmor) {
+      // Try to equip
+      const info = BLOCK_INFO[cursorItem.type];
+      if (info && info.armor === slotName) {
+        player.armor[slotName] = { type: cursorItem.type, durability: cursorItem.durability };
+        cursorItem.count--;
+        if (cursorItem.count <= 0) cursorItem = null;
+      }
+    } else if (cursorItem && currentArmor) {
+      // Swap if valid armor type
+      const info = BLOCK_INFO[cursorItem.type];
+      if (info && info.armor === slotName) {
+        const temp = { type: currentArmor.type, count: 1, durability: currentArmor.durability };
+        player.armor[slotName] = { type: cursorItem.type, durability: cursorItem.durability };
+        cursorItem = temp;
+      }
+    }
+  }
+}
+
+function handleOffhandSlotClick(button) {
+  const currentOffhand = player.offhand;
+
+  if (button === 0) {
+    // Left click: pick up / place / swap
+    if (!cursorItem && currentOffhand) {
+      // Pick up from offhand
+      cursorItem = { type: currentOffhand.type, count: currentOffhand.count, durability: currentOffhand.durability };
+      player.offhand = null;
+    } else if (cursorItem && !currentOffhand) {
+      // Place in offhand
+      player.offhand = { type: cursorItem.type, count: cursorItem.count, durability: cursorItem.durability };
+      cursorItem = null;
+    } else if (cursorItem && currentOffhand) {
+      // Swap
+      const temp = { type: currentOffhand.type, count: currentOffhand.count, durability: currentOffhand.durability };
+      player.offhand = { type: cursorItem.type, count: cursorItem.count, durability: cursorItem.durability };
+      cursorItem = temp;
+    }
+  } else if (button === 2) {
+    // Right click: place one / pick up half
+    if (!cursorItem && currentOffhand) {
+      // Pick up half
+      const half = Math.ceil(currentOffhand.count / 2);
+      cursorItem = { type: currentOffhand.type, count: half, durability: currentOffhand.durability };
+      currentOffhand.count -= half;
+      if (currentOffhand.count <= 0) player.offhand = null;
+    } else if (cursorItem && !currentOffhand) {
+      // Place one
+      player.offhand = { type: cursorItem.type, count: 1, durability: cursorItem.durability };
+      cursorItem.count--;
+      if (cursorItem.count <= 0) cursorItem = null;
+    } else if (cursorItem && currentOffhand && cursorItem.type === currentOffhand.type) {
+      // Add one to offhand if same type
+      const maxStack = getMaxStack(currentOffhand.type);
+      if (currentOffhand.count < maxStack) {
+        currentOffhand.count++;
+        cursorItem.count--;
+        if (cursorItem.count <= 0) cursorItem = null;
+      }
+    }
+  }
+}
+
+// Swap selected hotbar slot with offhand (F key)
+function swapWithOffhand() {
+  if (!player) return;
+  const slot = player.selectedSlot;
+  const hotbarItem = player.inventory[slot];
+  const offhandItem = player.offhand;
+
+  // Swap items
+  player.inventory[slot] = offhandItem ? { type: offhandItem.type, count: offhandItem.count, durability: offhandItem.durability } : null;
+  player.offhand = hotbarItem ? { type: hotbarItem.type, count: hotbarItem.count, durability: hotbarItem.durability } : null;
+}
+
+// Quick equip armor from inventory
+function tryEquipArmor(invIndex) {
+  const item = player.inventory[invIndex];
+  if (!item) return false;
+
+  const info = BLOCK_INFO[item.type];
+  if (!info || !info.armor) return false;
+
+  const slotName = info.armor;
+  if (player.armor[slotName]) return false; // Slot occupied
+
+  player.armor[slotName] = { type: item.type, durability: item.durability };
+  item.count--;
+  if (item.count <= 0) player.inventory[invIndex] = null;
+  return true;
 }
 
 function quickMoveItem(fromIdx, toStart, toEnd) {

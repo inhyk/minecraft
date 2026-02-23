@@ -34,6 +34,44 @@ window.addEventListener('keydown', e => {
     return;
   }
 
+  // World select screen
+  if (gameState === STATE.WORLD_SELECT) {
+    if (e.code === 'Escape') { gameState = STATE.TITLE; initTitle(); return; }
+    // Enter to play selected world
+    if (e.code === 'Enter' && selectedWorldIndex >= 0) {
+      const worlds = getSavedWorlds();
+      if (worlds[selectedWorldIndex]) {
+        if (loadWorld(worlds[selectedWorldIndex].name)) {
+          gameState = STATE.PLAYING;
+          resetGameState();
+        }
+      }
+      return;
+    }
+    // Arrow keys to navigate worlds
+    if (e.code === 'ArrowUp') {
+      const worlds = getSavedWorlds();
+      if (worlds.length > 0) {
+        selectedWorldIndex = selectedWorldIndex <= 0 ? worlds.length - 1 : selectedWorldIndex - 1;
+      }
+      return;
+    }
+    if (e.code === 'ArrowDown') {
+      const worlds = getSavedWorlds();
+      if (worlds.length > 0) {
+        selectedWorldIndex = selectedWorldIndex >= worlds.length - 1 ? 0 : selectedWorldIndex + 1;
+      }
+      return;
+    }
+    return;
+  }
+
+  // Controls screen
+  if (gameState === STATE.CONTROLS) {
+    if (e.code === 'Escape') { gameState = STATE.TITLE; initTitle(); return; }
+    return;
+  }
+
   // Chat input
   if (gameState === STATE.PLAYING && chatOpen) {
     if (e.code === 'Escape') { chatOpen = false; chatInput = ''; return; }
@@ -50,6 +88,15 @@ window.addEventListener('keydown', e => {
   keys[e.code] = true;
 
   if (gameState === STATE.PLAYING) {
+    // Toggle achievements with Tab
+    if (e.code === 'Tab') {
+      e.preventDefault();
+      if (!inventoryOpen && !tradeOpen && !chatOpen) {
+        toggleAchievements();
+      }
+      return;
+    }
+
     // Open chat with T (multiplayer only)
     if (e.code === 'KeyT' && isMultiplayer && !inventoryOpen) {
       chatOpen = true; chatInput = '';
@@ -72,11 +119,21 @@ window.addEventListener('keydown', e => {
       return;
     }
 
+    // Swap with offhand using F
+    if (e.code === 'KeyF' && !inventoryOpen && !tradeOpen && !chatOpen) {
+      swapWithOffhand();
+      return;
+    }
+
     // Close inventory with Escape, or go to title if not open
     if (e.code === 'Escape') {
       if (inventoryOpen) {
         toggleInventory();
       } else {
+        // Save world before exiting (singleplayer only)
+        if (!isMultiplayer && currentWorldName && typeof saveWorld === 'function') {
+          saveWorld(currentWorldName);
+        }
         disconnectFromServer();
         gameState = STATE.TITLE;
         initTitle();
@@ -110,6 +167,10 @@ canvas.addEventListener('mousedown', e => {
     mouse.left = true;
     if (gameState === STATE.TITLE) {
       handleTitleClick();
+    } else if (gameState === STATE.WORLD_SELECT) {
+      handleWorldSelectClick();
+    } else if (gameState === STATE.CONTROLS) {
+      handleControlsClick();
     } else if (gameState === STATE.CONNECT) {
       handleConnectClick();
     } else if (gameState === STATE.PLAYING && tradeOpen) {
@@ -121,7 +182,13 @@ canvas.addEventListener('mousedown', e => {
       if (!tryInteractVillager(mouse.x, mouse.y)) {
         if (!attackOtherPlayer()) {
           if (!attackMob()) {
-            attackAnimal();
+            if (typeof attackNetherMob === 'function' && attackNetherMob()) {
+              // Attacked nether mob
+            } else if (typeof attackEndMob === 'function' && attackEndMob()) {
+              // Attacked end mob
+            } else {
+              attackAnimal();
+            }
           }
         }
       }
@@ -148,13 +215,27 @@ canvas.addEventListener('mouseup', e => {
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 canvas.addEventListener('wheel', e => {
-  if (gameState === STATE.PLAYING && !inventoryOpen) {
-    if (e.deltaY > 0) {
-      player.selectedSlot = (player.selectedSlot + 1) % 9;
-    } else {
-      player.selectedSlot = (player.selectedSlot + 8) % 9;
+  if (gameState === STATE.WORLD_SELECT) {
+    e.preventDefault();
+    handleWorldSelectScroll(e.deltaY);
+    return;
+  }
+  if (gameState === STATE.PLAYING) {
+    // Scroll achievements if open
+    if (achievementsOpen && typeof scrollAchievements === 'function') {
+      e.preventDefault();
+      scrollAchievements(e.deltaY > 0 ? 1 : -1);
+      return;
+    }
+    // Hotbar scroll
+    if (!inventoryOpen) {
+      if (e.deltaY > 0) {
+        player.selectedSlot = (player.selectedSlot + 1) % 9;
+      } else {
+        player.selectedSlot = (player.selectedSlot + 8) % 9;
+      }
     }
   }
 });
 
-window.addEventListener('resize', resize);
+// resize listener is in main.js

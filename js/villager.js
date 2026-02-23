@@ -234,6 +234,10 @@ function openTrade(villager) {
   tradeOpen = true;
   tradingWith = villager;
   tradeHoveredSlot = -1;
+  // Achievement
+  if (typeof checkTradingAchievement === 'function') {
+    checkTradingAchievement('open');
+  }
 }
 
 function closeTrade() {
@@ -378,6 +382,11 @@ function executeTrade(trade) {
   // Add traded items to inventory
   for (let i = 0; i < trade.sell.amount; i++) {
     addToInventory(trade.sell.item);
+  }
+
+  // Achievement
+  if (typeof checkTradingAchievement === 'function') {
+    checkTradingAchievement('complete');
   }
 
   return true;

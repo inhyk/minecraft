@@ -6,10 +6,35 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
 // Game states
-const STATE = { TITLE: 0, PLAYING: 1, CONNECT: 2 };
+const STATE = { TITLE: 0, PLAYING: 1, CONNECT: 2, WORLD_SELECT: 3, CONTROLS: 4 };
 let gameState = STATE.TITLE;
+
+// World selection state
+let worldSelectScroll = 0;
+let selectedWorldIndex = -1;
+
+// Dimension system
+const DIMENSION = { OVERWORLD: 0, NETHER: 1, END: 2 };
+let currentDimension = DIMENSION.OVERWORLD;
+
+// Per-dimension chunk storage
+let dimensionChunks = {
+  [DIMENSION.OVERWORLD]: {},
+  [DIMENSION.NETHER]: {},
+  [DIMENSION.END]: {}
+};
+let dimensionChunkGenerated = {
+  [DIMENSION.OVERWORLD]: {},
+  [DIMENSION.NETHER]: {},
+  [DIMENSION.END]: {}
+};
+
+// Active chunks reference (points to current dimension)
 let chunks = {}; // key: chunkX -> Uint8Array(CHUNK_SIZE * WORLD_HEIGHT)
 let chunkGenerated = {}; // key: chunkX -> true (terrain+decor done)
+
+// Portal cooldown to prevent instant teleport back
+let portalCooldown = 0;
 let player = null;
 let camera = { x: 0, y: 0 };
 let keys = {};

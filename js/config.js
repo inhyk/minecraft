@@ -41,3 +41,18 @@ const INV_COLS = 9;
 // Village zone constants
 const VILLAGE_ZONE_SIZE = 300; // blocks per village zone
 const VILLAGE_CHANCE = 0.3; // 30% chance per zone
+
+// Nether constants
+const NETHER_HEIGHT = 128;
+const NETHER_CEILING = 110;  // Bedrock ceiling at top
+const NETHER_FLOOR = 118;    // Lava sea level
+
+// End constants
+const END_PLATFORM_Y = 60;   // End spawn platform Y
+const END_ISLAND_RADIUS = 50; // Main island radius
+
+// Nether mob types
+const NETHER_MOB_TYPE = { ZOMBIE_PIGMAN: 0, GHAST: 1, BLAZE: 2 };
+
+// End mob types
+const END_MOB_TYPE = { ENDERMAN: 0, ENDER_DRAGON: 1 };

@@ -262,9 +262,9 @@ function determineHost(presenceState) {
 
 // ─── Broadcast Handlers ────────────────────────────────────
 function handlePlayerMove(payload) {
-  const { id, x, y, facing, walkFrame, health, selectedSlot } = payload;
+  const { id, x, y, facing, walkFrame, health, selectedSlot, armor, heldItem, offhand } = payload;
   if (otherPlayers[id]) {
-    Object.assign(otherPlayers[id], { x, y, facing, walkFrame, health, selectedSlot });
+    Object.assign(otherPlayers[id], { x, y, facing, walkFrame, health, selectedSlot, armor, heldItem, offhand });
   }
 }
 
@@ -381,6 +381,9 @@ function handlePvpAttack(payload) {
 function netSendPosition() {
   if (!isMultiplayer || !realtimeChannel) return;
 
+  // Get currently held item for rendering on other clients
+  const heldItem = player.inventory[player.selectedSlot];
+
   realtimeChannel.send({
     type: 'broadcast',
     event: 'player_move',
@@ -391,7 +394,10 @@ function netSendPosition() {
       facing: player.facing,
       walkFrame: player.walkFrame,
       health: player.health,
-      selectedSlot: player.selectedSlot
+      selectedSlot: player.selectedSlot,
+      armor: player.armor,
+      heldItem: heldItem ? { type: heldItem.type, count: heldItem.count } : null,
+      offhand: player.offhand ? { type: player.offhand.type, count: player.offhand.count } : null
     }
   });
 }

@@ -17,10 +17,17 @@ function createPlayer() {
     onGround: false,
     inventory: createDefaultInventory(),
     selectedSlot: 0,
+    offhand: null, // Left hand slot
     facing: 1, // 1 = right, -1 = left
     walkFrame: 0,
     health: 20,
     maxHealth: 20,
+    armor: {
+      helmet: null,
+      chestplate: null,
+      leggings: null,
+      boots: null
+    },
   };
 }
 
@@ -109,10 +116,61 @@ function resolveCollisionY() {
   }
 }
 
+function getTotalArmorDefense() {
+  if (!player || !player.armor) return 0;
+  let defense = 0;
+  const slots = ['helmet', 'chestplate', 'leggings', 'boots'];
+  for (const slot of slots) {
+    const armor = player.armor[slot];
+    if (armor) {
+      const info = BLOCK_INFO[armor.type];
+      if (info && info.defense) {
+        defense += info.defense;
+      }
+    }
+  }
+  return defense;
+}
+
+function damageArmor() {
+  if (!player || !player.armor) return;
+  const slots = ['helmet', 'chestplate', 'leggings', 'boots'];
+  for (const slot of slots) {
+    const armor = player.armor[slot];
+    if (armor) {
+      const maxDur = getMaxDurability(armor.type);
+      if (maxDur > 0) {
+        if (armor.durability === undefined) armor.durability = maxDur;
+        armor.durability--;
+        if (armor.durability <= 0) {
+          player.armor[slot] = null;
+        }
+      }
+    }
+  }
+}
+
 function damagePlayer(amount) {
   if (playerHurtTimer > 0 || playerDeathTimer > 0) return;
-  player.health -= amount;
+
+  // Calculate armor reduction
+  const armorDefense = getTotalArmorDefense();
+  // Each defense point reduces damage by 4%
+  const reduction = Math.min(0.8, armorDefense * 0.04);
+  const actualDamage = Math.max(0.5, amount * (1 - reduction));
+
+  player.health -= actualDamage;
   playerHurtTimer = 500; // invincibility frames
+
+  // Achievement for taking damage
+  if (typeof onPlayerDamage === 'function') {
+    onPlayerDamage(actualDamage);
+  }
+
+  // Damage armor when hit
+  if (armorDefense > 0) {
+    damageArmor();
+  }
 
   if (player.health <= 0) {
     player.health = 0;

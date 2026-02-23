@@ -3,6 +3,34 @@
 // ============================================================
 
 function drawSky() {
+  if (typeof currentDimension !== 'undefined' && currentDimension === DIMENSION.NETHER) {
+    // Nether sky - dark red
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#1a0505');
+    gradient.addColorStop(0.5, '#300a0a');
+    gradient.addColorStop(1, '#4a1010');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
+
+  if (typeof currentDimension !== 'undefined' && currentDimension === DIMENSION.END) {
+    // End sky - dark purple/black with stars
+    ctx.fillStyle = '#0a0515';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Stars
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 50; i++) {
+      const sx = (Math.sin(i * 123.456) * 0.5 + 0.5) * canvas.width;
+      const sy = (Math.cos(i * 789.012) * 0.5 + 0.5) * canvas.height * 0.7;
+      const size = 1 + (i % 3);
+      ctx.fillRect(sx, sy, size, size);
+    }
+    return;
+  }
+
+  // Overworld sky
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
   gradient.addColorStop(0, '#4a90d9');
   gradient.addColorStop(0.5, '#87ceeb');
@@ -107,6 +135,184 @@ function drawPlayer() {
   // Mouth
   ctx.fillStyle = '#8B4513';
   ctx.fillRect(sx + w*0.35, sy + h*0.24, w*0.3, h*0.03);
+
+  // Draw equipped armor
+  if (player && player.armor) {
+    drawPlayerArmor(sx, sy, w, h, player.armor);
+  }
+
+  // Draw held items (main hand and offhand)
+  drawPlayerHeldItems(sx, sy, w, h, f);
+}
+
+function drawPlayerHeldItems(sx, sy, w, h, f) {
+  const armSwing = Math.sin(player.walkFrame * 2) * 8;
+  const mainItem = player.inventory[player.selectedSlot];
+  const offhandItem = player.offhand;
+
+  // Item size
+  const itemSize = w * 0.5;
+
+  // Main hand (right side when facing right, left side when facing left)
+  if (mainItem) {
+    const mainX = f === 1 ? sx + w + w*0.05 : sx - w*0.3;
+    const mainY = sy + h*0.35 - armSwing + itemSize/4;
+    drawBlock(mainX, mainY, mainItem.type, itemSize);
+  }
+
+  // Offhand (opposite side of main hand)
+  if (offhandItem) {
+    const offX = f === 1 ? sx - w*0.35 : sx + w + w*0.05;
+    const offY = sy + h*0.35 + armSwing + itemSize/4;
+    drawBlock(offX, offY, offhandItem.type, itemSize);
+  }
+}
+
+function drawPlayerArmor(sx, sy, w, h, armor) {
+  if (!armor) return;
+
+  // Helmet
+  if (armor.helmet) {
+    const info = BLOCK_INFO[armor.helmet.type];
+    const c = ARMOR_COLORS[info.tier];
+    // Helmet on head
+    ctx.fillStyle = c.main;
+    ctx.fillRect(sx - w*0.15, sy - h*0.03, w*1.3, h*0.12);
+    ctx.fillRect(sx - w*0.1, sy + h*0.06, w*1.2, h*0.06);
+    ctx.fillStyle = c.dark;
+    ctx.fillRect(sx - w*0.12, sy + h*0.1, w*1.24, h*0.03);
+  }
+
+  // Chestplate
+  if (armor.chestplate) {
+    const info = BLOCK_INFO[armor.chestplate.type];
+    const c = ARMOR_COLORS[info.tier];
+    ctx.fillStyle = c.main;
+    ctx.fillRect(sx - w*0.05, sy + h*0.3, w*1.1, h*0.35);
+    // Shoulder pads
+    ctx.fillRect(sx - w*0.3, sy + h*0.28, w*0.3, h*0.12);
+    ctx.fillRect(sx + w, sy + h*0.28, w*0.3, h*0.12);
+    ctx.fillStyle = c.dark;
+    ctx.fillRect(sx + w*0.45, sy + h*0.35, w*0.1, h*0.25);
+  }
+
+  // Leggings
+  if (armor.leggings) {
+    const info = BLOCK_INFO[armor.leggings.type];
+    const c = ARMOR_COLORS[info.tier];
+    const legSwing = Math.sin(player.walkFrame * 2) * 6;
+    ctx.fillStyle = c.main;
+    // Belt
+    ctx.fillRect(sx + w*0.05, sy + h*0.58, w*0.9, h*0.08);
+    // Left leg armor
+    ctx.fillRect(sx + w*0.08, sy + h*0.6 + legSwing, w*0.38, h*0.25 - legSwing);
+    // Right leg armor
+    ctx.fillRect(sx + w*0.54, sy + h*0.6 - legSwing, w*0.38, h*0.25 + legSwing);
+    ctx.fillStyle = c.dark;
+    // Knee guards
+    ctx.fillRect(sx + w*0.15, sy + h*0.78 + legSwing, w*0.24, h*0.05);
+    ctx.fillRect(sx + w*0.61, sy + h*0.78 - legSwing, w*0.24, h*0.05);
+  }
+
+  // Boots
+  if (armor.boots) {
+    const info = BLOCK_INFO[armor.boots.type];
+    const c = ARMOR_COLORS[info.tier];
+    const legSwing = Math.sin(player.walkFrame * 2) * 6;
+    ctx.fillStyle = c.main;
+    // Left boot
+    ctx.fillRect(sx + w*0.05, sy + h*0.88 + legSwing, w*0.4, h*0.12 - legSwing);
+    // Right boot
+    ctx.fillRect(sx + w*0.55, sy + h*0.88 - legSwing, w*0.4, h*0.12 + legSwing);
+    ctx.fillStyle = c.dark;
+    // Boot bottoms
+    ctx.fillRect(sx + w*0.05, sy + h*0.97 + legSwing, w*0.4, h*0.03);
+    ctx.fillRect(sx + w*0.55, sy + h*0.97 - legSwing, w*0.4, h*0.03);
+  }
+}
+
+function drawOtherPlayerArmor(sx, sy, w, h, wf, armor) {
+  if (!armor) return;
+
+  // Helmet
+  if (armor.helmet) {
+    const info = BLOCK_INFO[armor.helmet.type];
+    if (info) {
+      const c = ARMOR_COLORS[info.tier];
+      ctx.fillStyle = c.main;
+      ctx.fillRect(sx - w*0.15, sy - h*0.03, w*1.3, h*0.12);
+      ctx.fillRect(sx - w*0.1, sy + h*0.06, w*1.2, h*0.06);
+      ctx.fillStyle = c.dark;
+      ctx.fillRect(sx - w*0.12, sy + h*0.1, w*1.24, h*0.03);
+    }
+  }
+
+  // Chestplate
+  if (armor.chestplate) {
+    const info = BLOCK_INFO[armor.chestplate.type];
+    if (info) {
+      const c = ARMOR_COLORS[info.tier];
+      ctx.fillStyle = c.main;
+      ctx.fillRect(sx - w*0.05, sy + h*0.3, w*1.1, h*0.35);
+      ctx.fillRect(sx - w*0.3, sy + h*0.28, w*0.3, h*0.12);
+      ctx.fillRect(sx + w, sy + h*0.28, w*0.3, h*0.12);
+      ctx.fillStyle = c.dark;
+      ctx.fillRect(sx + w*0.45, sy + h*0.35, w*0.1, h*0.25);
+    }
+  }
+
+  // Leggings
+  if (armor.leggings) {
+    const info = BLOCK_INFO[armor.leggings.type];
+    if (info) {
+      const c = ARMOR_COLORS[info.tier];
+      const legSwing = Math.sin(wf * 2) * 6;
+      ctx.fillStyle = c.main;
+      ctx.fillRect(sx + w*0.05, sy + h*0.58, w*0.9, h*0.08);
+      ctx.fillRect(sx + w*0.08, sy + h*0.6 + legSwing, w*0.38, h*0.25 - legSwing);
+      ctx.fillRect(sx + w*0.54, sy + h*0.6 - legSwing, w*0.38, h*0.25 + legSwing);
+      ctx.fillStyle = c.dark;
+      ctx.fillRect(sx + w*0.15, sy + h*0.78 + legSwing, w*0.24, h*0.05);
+      ctx.fillRect(sx + w*0.61, sy + h*0.78 - legSwing, w*0.24, h*0.05);
+    }
+  }
+
+  // Boots
+  if (armor.boots) {
+    const info = BLOCK_INFO[armor.boots.type];
+    if (info) {
+      const c = ARMOR_COLORS[info.tier];
+      const legSwing = Math.sin(wf * 2) * 6;
+      ctx.fillStyle = c.main;
+      ctx.fillRect(sx + w*0.05, sy + h*0.88 + legSwing, w*0.4, h*0.12 - legSwing);
+      ctx.fillRect(sx + w*0.55, sy + h*0.88 - legSwing, w*0.4, h*0.12 + legSwing);
+      ctx.fillStyle = c.dark;
+      ctx.fillRect(sx + w*0.05, sy + h*0.97 + legSwing, w*0.4, h*0.03);
+      ctx.fillRect(sx + w*0.55, sy + h*0.97 - legSwing, w*0.4, h*0.03);
+    }
+  }
+}
+
+function drawOtherPlayerHeldItems(sx, sy, w, h, f, wf, op) {
+  const armSwing = Math.sin(wf * 2) * 8;
+  const mainItem = op.heldItem;
+  const offhandItem = op.offhand;
+
+  const itemSize = w * 0.5;
+
+  // Main hand
+  if (mainItem) {
+    const mainX = f === 1 ? sx + w + w*0.05 : sx - w*0.3;
+    const mainY = sy + h*0.35 - armSwing + itemSize/4;
+    drawBlock(mainX, mainY, mainItem.type, itemSize);
+  }
+
+  // Offhand
+  if (offhandItem) {
+    const offX = f === 1 ? sx - w*0.35 : sx + w + w*0.05;
+    const offY = sy + h*0.35 + armSwing + itemSize/4;
+    drawBlock(offX, offY, offhandItem.type, itemSize);
+  }
 }
 
 function drawMiningOverlay() {
@@ -190,6 +396,45 @@ function drawHotbar() {
     ctx.textAlign = 'left';
     ctx.fillText(i + 1, sx + 3, sy + 12);
   }
+
+  // Offhand slot (left of hotbar)
+  const offhandX = startX - slotSize - 16;
+  const offhandY = startY;
+
+  // Offhand background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.fillRect(offhandX - 6, offhandY - 6, slotSize + 12, slotSize + 12);
+
+  // Offhand slot
+  ctx.fillStyle = 'rgba(80, 80, 120, 0.5)';
+  ctx.fillRect(offhandX, offhandY, slotSize, slotSize);
+  ctx.strokeStyle = '#668';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(offhandX, offhandY, slotSize, slotSize);
+
+  // Offhand item
+  if (player.offhand) {
+    drawBlock(offhandX + 8, offhandY + 8, player.offhand.type, slotSize - 16);
+    drawDurabilityBar(offhandX + 8, offhandY + 8, slotSize - 16, player.offhand);
+    if (player.offhand.count > 1) {
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 13px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(player.offhand.count, offhandX + slotSize - 4, offhandY + slotSize - 4);
+    }
+  } else {
+    // Empty slot indicator
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('L', offhandX + slotSize/2, offhandY + slotSize/2 + 6);
+  }
+
+  // F key hint
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('F', offhandX + slotSize/2, offhandY + 12);
 }
 
 function drawHUD() {
@@ -211,15 +456,16 @@ function drawHUD() {
     }
   }
 
-  // Coordinates
+  // Coordinates and dimension
   const bx = Math.floor(player.x / BLOCK_SIZE);
   const by = Math.floor(player.y / BLOCK_SIZE);
+  const dimName = typeof getDimensionName === 'function' ? getDimensionName() : 'Overworld';
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(canvas.width - 120, 8, 112, 22);
+  ctx.fillRect(canvas.width - 135, 8, 127, 22);
   ctx.fillStyle = '#fff';
   ctx.font = '12px monospace';
   ctx.textAlign = 'right';
-  ctx.fillText(`X:${bx} Y:${by}`, canvas.width - 14, 23);
+  ctx.fillText(`${dimName} X:${bx} Y:${by}`, canvas.width - 14, 23);
 
   // Block name under cursor
   const target = getTargetBlock();
@@ -534,6 +780,14 @@ function drawOtherPlayers() {
     ctx.fillStyle = '#2a1a4a';
     ctx.fillRect(sx + w*(ex+0.1), sy + h*0.14, w*0.1, h*0.06);
     ctx.fillRect(sx + w*(ex+0.35), sy + h*0.14, w*0.1, h*0.06);
+
+    // Draw armor for other players
+    if (op.armor) {
+      drawOtherPlayerArmor(sx, sy, w, h, wf, op.armor);
+    }
+
+    // Draw held items for other players
+    drawOtherPlayerHeldItems(sx, sy, w, h, f, wf, op);
 
     // Nametag
     ctx.fillStyle = 'rgba(0,0,0,0.5)';

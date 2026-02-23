@@ -15,6 +15,23 @@ const B = {
   WOOD_AXE: 32, STONE_AXE: 33, IRON_AXE: 34, GOLD_AXE: 35, DIAMOND_AXE: 36,
   WOOD_SWORD: 37, STONE_SWORD: 38, IRON_SWORD: 39, GOLD_SWORD: 40, DIAMOND_SWORD: 41,
   WOOD_SHOVEL: 42, STONE_SHOVEL: 43, IRON_SHOVEL: 44, GOLD_SHOVEL: 45, DIAMOND_SHOVEL: 46,
+  // Armor
+  LEATHER_HELMET: 47, LEATHER_CHESTPLATE: 48, LEATHER_LEGGINGS: 49, LEATHER_BOOTS: 50,
+  IRON_HELMET: 51, IRON_CHESTPLATE: 52, IRON_LEGGINGS: 53, IRON_BOOTS: 54,
+  GOLD_HELMET: 55, GOLD_CHESTPLATE: 56, GOLD_LEGGINGS: 57, GOLD_BOOTS: 58,
+  DIAMOND_HELMET: 59, DIAMOND_CHESTPLATE: 60, DIAMOND_LEGGINGS: 61, DIAMOND_BOOTS: 62,
+  // Nether blocks
+  OBSIDIAN: 63, NETHERRACK: 64, SOUL_SAND: 65, GLOWSTONE: 66,
+  NETHER_BRICK: 67, NETHER_QUARTZ_ORE: 68, NETHER_PORTAL: 69, LAVA: 70,
+  // End blocks
+  END_STONE: 71, END_PORTAL: 72, END_PORTAL_FRAME: 73,
+  // Nether/End items
+  FLINT: 74, FLINT_AND_STEEL: 75, ENDER_PEARL: 76, BLAZE_ROD: 77,
+  BLAZE_POWDER: 78, EYE_OF_ENDER: 79,
+  // Nether mobs drops
+  GOLD_NUGGET: 80, GHAST_TEAR: 81,
+  // Additional blocks
+  GRAVEL: 82,
 };
 
 // Tier colors for tool rendering
@@ -79,6 +96,46 @@ const BLOCK_INFO = {
   [B.IRON_SHOVEL]:    { name: "Iron Shovel",    solid: false, placeable: false, maxStack: 1, tool: 'shovel', tier: 'iron',    miningSpeed: 4, attackDamage: 4, durability: 250 },
   [B.GOLD_SHOVEL]:    { name: "Gold Shovel",    solid: false, placeable: false, maxStack: 1, tool: 'shovel', tier: 'gold',    miningSpeed: 5, attackDamage: 2, durability: 33 },
   [B.DIAMOND_SHOVEL]: { name: "Diamond Shovel", solid: false, placeable: false, maxStack: 1, tool: 'shovel', tier: 'diamond', miningSpeed: 5, attackDamage: 5, durability: 1561 },
+  // Armor
+  [B.LEATHER_HELMET]:     { name: "Leather Helmet",     solid: false, placeable: false, maxStack: 1, armor: 'helmet',     tier: 'leather',  defense: 1,   durability: 56 },
+  [B.LEATHER_CHESTPLATE]: { name: "Leather Chestplate", solid: false, placeable: false, maxStack: 1, armor: 'chestplate', tier: 'leather',  defense: 3,   durability: 81 },
+  [B.LEATHER_LEGGINGS]:   { name: "Leather Leggings",   solid: false, placeable: false, maxStack: 1, armor: 'leggings',   tier: 'leather',  defense: 2,   durability: 76 },
+  [B.LEATHER_BOOTS]:      { name: "Leather Boots",      solid: false, placeable: false, maxStack: 1, armor: 'boots',      tier: 'leather',  defense: 1,   durability: 66 },
+  [B.IRON_HELMET]:        { name: "Iron Helmet",        solid: false, placeable: false, maxStack: 1, armor: 'helmet',     tier: 'iron',     defense: 2,   durability: 166 },
+  [B.IRON_CHESTPLATE]:    { name: "Iron Chestplate",    solid: false, placeable: false, maxStack: 1, armor: 'chestplate', tier: 'iron',     defense: 6,   durability: 241 },
+  [B.IRON_LEGGINGS]:      { name: "Iron Leggings",      solid: false, placeable: false, maxStack: 1, armor: 'leggings',   tier: 'iron',     defense: 5,   durability: 226 },
+  [B.IRON_BOOTS]:         { name: "Iron Boots",         solid: false, placeable: false, maxStack: 1, armor: 'boots',      tier: 'iron',     defense: 2,   durability: 196 },
+  [B.GOLD_HELMET]:        { name: "Gold Helmet",        solid: false, placeable: false, maxStack: 1, armor: 'helmet',     tier: 'gold',     defense: 2,   durability: 78 },
+  [B.GOLD_CHESTPLATE]:    { name: "Gold Chestplate",    solid: false, placeable: false, maxStack: 1, armor: 'chestplate', tier: 'gold',     defense: 5,   durability: 113 },
+  [B.GOLD_LEGGINGS]:      { name: "Gold Leggings",      solid: false, placeable: false, maxStack: 1, armor: 'leggings',   tier: 'gold',     defense: 3,   durability: 106 },
+  [B.GOLD_BOOTS]:         { name: "Gold Boots",         solid: false, placeable: false, maxStack: 1, armor: 'boots',      tier: 'gold',     defense: 1,   durability: 92 },
+  [B.DIAMOND_HELMET]:     { name: "Diamond Helmet",     solid: false, placeable: false, maxStack: 1, armor: 'helmet',     tier: 'diamond',  defense: 3,   durability: 364 },
+  [B.DIAMOND_CHESTPLATE]: { name: "Diamond Chestplate", solid: false, placeable: false, maxStack: 1, armor: 'chestplate', tier: 'diamond',  defense: 8,   durability: 529 },
+  [B.DIAMOND_LEGGINGS]:   { name: "Diamond Leggings",   solid: false, placeable: false, maxStack: 1, armor: 'leggings',   tier: 'diamond',  defense: 6,   durability: 496 },
+  [B.DIAMOND_BOOTS]:      { name: "Diamond Boots",      solid: false, placeable: false, maxStack: 1, armor: 'boots',      tier: 'diamond',  defense: 3,   durability: 430 },
+  // Nether blocks
+  [B.OBSIDIAN]:           { name: "Obsidian",         solid: true,  hardness: 50 },
+  [B.NETHERRACK]:         { name: "Netherrack",       solid: true,  hardness: 0.5 },
+  [B.SOUL_SAND]:          { name: "Soul Sand",        solid: true,  hardness: 1 },
+  [B.GLOWSTONE]:          { name: "Glowstone",        solid: true,  hardness: 0.5 },
+  [B.NETHER_BRICK]:       { name: "Nether Brick",     solid: true,  hardness: 3 },
+  [B.NETHER_QUARTZ_ORE]:  { name: "Nether Quartz",    solid: true,  hardness: 4 },
+  [B.NETHER_PORTAL]:      { name: "Nether Portal",    solid: false, hardness: -1 },
+  [B.LAVA]:               { name: "Lava",             solid: false, hardness: -1 },
+  // End blocks
+  [B.END_STONE]:          { name: "End Stone",        solid: true,  hardness: 3 },
+  [B.END_PORTAL]:         { name: "End Portal",       solid: false, hardness: -1 },
+  [B.END_PORTAL_FRAME]:   { name: "End Portal Frame", solid: true,  hardness: -1 },
+  // Nether/End items
+  [B.FLINT]:              { name: "Flint",            solid: false, hardness: -1, placeable: false },
+  [B.FLINT_AND_STEEL]:    { name: "Flint and Steel", solid: false, placeable: false, maxStack: 1, durability: 64 },
+  [B.ENDER_PEARL]:        { name: "Ender Pearl",     solid: false, hardness: -1, placeable: false, maxStack: 16 },
+  [B.BLAZE_ROD]:          { name: "Blaze Rod",       solid: false, hardness: -1, placeable: false },
+  [B.BLAZE_POWDER]:       { name: "Blaze Powder",    solid: false, hardness: -1, placeable: false },
+  [B.EYE_OF_ENDER]:       { name: "Eye of Ender",    solid: false, hardness: -1, placeable: false, maxStack: 16 },
+  [B.GOLD_NUGGET]:        { name: "Gold Nugget",     solid: false, hardness: -1, placeable: false },
+  [B.GHAST_TEAR]:         { name: "Ghast Tear",      solid: false, hardness: -1, placeable: false },
+  [B.GRAVEL]:             { name: "Gravel",          solid: true,  hardness: 1, flintChance: 0.1 },
 };
 
 // Helper: max stack size for a type
@@ -140,9 +197,9 @@ function getToolSpeedMultiplier(blockType) {
   const info = BLOCK_INFO[held.type];
   if (!info || !info.tool || !info.miningSpeed) return 1;
 
-  const pickTargets = [B.STONE, B.COBBLESTONE, B.COAL_ORE, B.IRON_ORE, B.GOLD_ORE, B.DIAMOND_ORE, B.COPPER_ORE, B.BRICK];
+  const pickTargets = [B.STONE, B.COBBLESTONE, B.COAL_ORE, B.IRON_ORE, B.GOLD_ORE, B.DIAMOND_ORE, B.COPPER_ORE, B.BRICK, B.OBSIDIAN, B.NETHERRACK, B.NETHER_BRICK, B.NETHER_QUARTZ_ORE, B.END_STONE, B.GLOWSTONE];
   const axeTargets = [B.WOOD, B.PLANKS, B.LEAVES, B.CRAFT_TABLE];
-  const shovelTargets = [B.DIRT, B.GRASS, B.SAND, B.SNOW];
+  const shovelTargets = [B.DIRT, B.GRASS, B.SAND, B.SNOW, B.SOUL_SAND, B.GRAVEL];
 
   switch (info.tool) {
     case 'pickaxe': return pickTargets.includes(blockType) ? info.miningSpeed : 1;
@@ -221,6 +278,98 @@ function drawToolIcon(x, y, s, toolType, tierColor, darkColor) {
   }
 }
 
+// Armor tier colors
+const ARMOR_COLORS = {
+  leather: { main: '#A0703C', dark: '#7A4A1B', light: '#C89060' },
+  iron:    { main: '#e8e8e8', dark: '#aaa',    light: '#fff' },
+  gold:    { main: '#fcdb4a', dark: '#d4b030', light: '#ffe880' },
+  diamond: { main: '#5ce8e8', dark: '#3ab8b8', light: '#a0ffff' },
+};
+
+function drawArmorIcon(x, y, s, armorType, tier) {
+  const c = ARMOR_COLORS[tier];
+
+  switch (armorType) {
+    case 'helmet':
+      // Main dome
+      ctx.fillStyle = c.main;
+      ctx.fillRect(x + s*0.15, y + s*0.25, s*0.7, s*0.55);
+      // Top curve
+      ctx.fillRect(x + s*0.25, y + s*0.15, s*0.5, s*0.15);
+      // Visor opening
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x + s*0.25, y + s*0.55, s*0.5, s*0.15);
+      // Highlight
+      ctx.fillStyle = c.light;
+      ctx.fillRect(x + s*0.2, y + s*0.2, s*0.15, s*0.25);
+      // Dark edge
+      ctx.fillStyle = c.dark;
+      ctx.fillRect(x + s*0.15, y + s*0.7, s*0.7, s*0.1);
+      break;
+
+    case 'chestplate':
+      // Main body
+      ctx.fillStyle = c.main;
+      ctx.fillRect(x + s*0.1, y + s*0.1, s*0.8, s*0.8);
+      // Neck opening
+      ctx.fillStyle = '#666';
+      ctx.fillRect(x + s*0.35, y + s*0.05, s*0.3, s*0.15);
+      // Arm holes
+      ctx.fillStyle = '#666';
+      ctx.fillRect(x + s*0.05, y + s*0.15, s*0.1, s*0.35);
+      ctx.fillRect(x + s*0.85, y + s*0.15, s*0.1, s*0.35);
+      // Chest detail
+      ctx.fillStyle = c.dark;
+      ctx.fillRect(x + s*0.2, y + s*0.25, s*0.6, s*0.08);
+      ctx.fillRect(x + s*0.45, y + s*0.25, s*0.1, s*0.55);
+      // Highlight
+      ctx.fillStyle = c.light;
+      ctx.fillRect(x + s*0.15, y + s*0.12, s*0.2, s*0.1);
+      break;
+
+    case 'leggings':
+      // Waist
+      ctx.fillStyle = c.main;
+      ctx.fillRect(x + s*0.15, y + s*0.05, s*0.7, s*0.25);
+      // Left leg
+      ctx.fillRect(x + s*0.15, y + s*0.25, s*0.3, s*0.7);
+      // Right leg
+      ctx.fillRect(x + s*0.55, y + s*0.25, s*0.3, s*0.7);
+      // Belt
+      ctx.fillStyle = c.dark;
+      ctx.fillRect(x + s*0.15, y + s*0.1, s*0.7, s*0.08);
+      // Knee detail
+      ctx.fillRect(x + s*0.2, y + s*0.55, s*0.2, s*0.08);
+      ctx.fillRect(x + s*0.6, y + s*0.55, s*0.2, s*0.08);
+      // Highlight
+      ctx.fillStyle = c.light;
+      ctx.fillRect(x + s*0.18, y + s*0.3, s*0.1, s*0.2);
+      ctx.fillRect(x + s*0.58, y + s*0.3, s*0.1, s*0.2);
+      break;
+
+    case 'boots':
+      // Left boot
+      ctx.fillStyle = c.main;
+      ctx.fillRect(x + s*0.08, y + s*0.15, s*0.35, s*0.55);
+      ctx.fillRect(x + s*0.08, y + s*0.6, s*0.42, s*0.25);
+      // Right boot
+      ctx.fillRect(x + s*0.57, y + s*0.15, s*0.35, s*0.55);
+      ctx.fillRect(x + s*0.5, y + s*0.6, s*0.42, s*0.25);
+      // Boot tops
+      ctx.fillStyle = c.dark;
+      ctx.fillRect(x + s*0.08, y + s*0.15, s*0.35, s*0.1);
+      ctx.fillRect(x + s*0.57, y + s*0.15, s*0.35, s*0.1);
+      // Sole
+      ctx.fillRect(x + s*0.08, y + s*0.78, s*0.42, s*0.07);
+      ctx.fillRect(x + s*0.5, y + s*0.78, s*0.42, s*0.07);
+      // Highlight
+      ctx.fillStyle = c.light;
+      ctx.fillRect(x + s*0.12, y + s*0.28, s*0.1, s*0.15);
+      ctx.fillRect(x + s*0.62, y + s*0.28, s*0.1, s*0.15);
+      break;
+  }
+}
+
 function drawBlock(x, y, type, size) {
   if (type === B.AIR || type === B.WATER) {
     if (type === B.WATER) {
@@ -236,6 +385,12 @@ function drawBlock(x, y, type, size) {
   if (toolInfo && toolInfo.tool) {
     const tc = TIER_COLORS[toolInfo.tier];
     drawToolIcon(x, y, s, toolInfo.tool, tc.head, tc.dark);
+    return;
+  }
+
+  // Armor items - render with armor icon and return (no border)
+  if (toolInfo && toolInfo.armor) {
+    drawArmorIcon(x, y, s, toolInfo.armor, toolInfo.tier);
     return;
   }
 
@@ -458,6 +613,209 @@ function drawBlock(x, y, type, size) {
       ctx.fillRect(x + s*0.4, y + s*0.05, s*0.2, s*0.9);
       ctx.fillStyle = '#7a5c12';
       ctx.fillRect(x + s*0.42, y + s*0.1, s*0.06, s*0.7);
+      break;
+    // === NETHER BLOCKS ===
+    case B.OBSIDIAN:
+      ctx.fillStyle = '#1a0a2e';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#2a1a4e';
+      ctx.fillRect(x + s*0.1, y + s*0.1, s*0.3, s*0.3);
+      ctx.fillRect(x + s*0.5, y + s*0.5, s*0.35, s*0.35);
+      ctx.fillStyle = '#3a2a6e';
+      ctx.fillRect(x + s*0.15, y + s*0.55, s*0.2, s*0.2);
+      ctx.fillRect(x + s*0.6, y + s*0.15, s*0.25, s*0.25);
+      break;
+    case B.NETHERRACK:
+      ctx.fillStyle = '#6a2020';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#7a3030';
+      ctx.fillRect(x + s*0.1, y + s*0.15, s*0.35, s*0.3);
+      ctx.fillRect(x + s*0.5, y + s*0.55, s*0.4, s*0.35);
+      ctx.fillStyle = '#5a1515';
+      ctx.fillRect(x + s*0.55, y + s*0.1, s*0.3, s*0.25);
+      ctx.fillRect(x + s*0.05, y + s*0.6, s*0.25, s*0.25);
+      break;
+    case B.SOUL_SAND:
+      ctx.fillStyle = '#5a4a3a';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#4a3a2a';
+      ctx.fillRect(x + s*0.15, y + s*0.2, s*0.25, s*0.25);
+      ctx.fillRect(x + s*0.55, y + s*0.5, s*0.3, s*0.3);
+      // Faces in soul sand
+      ctx.fillStyle = '#3a2a1a';
+      ctx.fillRect(x + s*0.2, y + s*0.25, s*0.06, s*0.08);
+      ctx.fillRect(x + s*0.32, y + s*0.25, s*0.06, s*0.08);
+      ctx.fillRect(x + s*0.24, y + s*0.35, s*0.12, s*0.05);
+      break;
+    case B.GLOWSTONE:
+      ctx.fillStyle = '#e8c858';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#f8e088';
+      ctx.fillRect(x + s*0.1, y + s*0.1, s*0.35, s*0.35);
+      ctx.fillRect(x + s*0.5, y + s*0.5, s*0.4, s*0.4);
+      ctx.fillStyle = '#c8a838';
+      ctx.fillRect(x + s*0.5, y + s*0.1, s*0.35, s*0.3);
+      ctx.fillRect(x + s*0.1, y + s*0.55, s*0.3, s*0.35);
+      break;
+    case B.NETHER_BRICK:
+      ctx.fillStyle = '#3a1a1a';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#2a0a0a';
+      ctx.fillRect(x, y + s*0.24, s, s*0.04);
+      ctx.fillRect(x, y + s*0.52, s, s*0.04);
+      ctx.fillRect(x, y + s*0.76, s, s*0.04);
+      ctx.fillRect(x + s*0.5, y, s*0.04, s*0.24);
+      ctx.fillRect(x + s*0.25, y + s*0.28, s*0.04, s*0.24);
+      break;
+    case B.NETHER_QUARTZ_ORE:
+      ctx.fillStyle = '#6a2020';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#f0e8e0';
+      ctx.fillRect(x + s*0.15, y + s*0.2, s*0.25, s*0.25);
+      ctx.fillRect(x + s*0.55, y + s*0.5, s*0.3, s*0.25);
+      ctx.fillStyle = '#e8d8d0';
+      ctx.fillRect(x + s*0.5, y + s*0.15, s*0.2, s*0.15);
+      break;
+    case B.NETHER_PORTAL:
+      ctx.fillStyle = 'rgba(128, 0, 255, 0.7)';
+      ctx.fillRect(x, y, s, s);
+      // Swirling effect
+      const portalTime = Date.now() * 0.003;
+      ctx.fillStyle = 'rgba(200, 100, 255, 0.5)';
+      for (let i = 0; i < 3; i++) {
+        const px = x + s * (0.3 + Math.sin(portalTime + i) * 0.2);
+        const py = y + s * (0.2 + i * 0.25);
+        ctx.fillRect(px, py, s * 0.4, s * 0.15);
+      }
+      break;
+    case B.LAVA:
+      ctx.fillStyle = '#d04000';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#f06000';
+      ctx.fillRect(x + s*0.1, y + s*0.1, s*0.4, s*0.35);
+      ctx.fillRect(x + s*0.45, y + s*0.5, s*0.45, s*0.4);
+      ctx.fillStyle = '#ff8020';
+      ctx.fillRect(x + s*0.2, y + s*0.2, s*0.2, s*0.15);
+      ctx.fillRect(x + s*0.55, y + s*0.6, s*0.25, s*0.2);
+      break;
+    // === END BLOCKS ===
+    case B.END_STONE:
+      ctx.fillStyle = '#d8d898';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#c8c888';
+      ctx.fillRect(x + s*0.1, y + s*0.15, s*0.35, s*0.3);
+      ctx.fillRect(x + s*0.5, y + s*0.5, s*0.4, s*0.35);
+      ctx.fillStyle = '#e8e8a8';
+      ctx.fillRect(x + s*0.5, y + s*0.1, s*0.35, s*0.25);
+      break;
+    case B.END_PORTAL:
+      ctx.fillStyle = '#000820';
+      ctx.fillRect(x, y, s, s);
+      // Star effect
+      ctx.fillStyle = '#a0f0a0';
+      for (let i = 0; i < 5; i++) {
+        const starX = x + s * (0.15 + (i * 0.17));
+        const starY = y + s * (0.2 + Math.sin(Date.now() * 0.002 + i) * 0.3);
+        ctx.fillRect(starX, starY, s * 0.08, s * 0.08);
+      }
+      break;
+    case B.END_PORTAL_FRAME:
+      ctx.fillStyle = '#2a4a4a';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#1a3a3a';
+      ctx.fillRect(x + s*0.1, y + s*0.6, s*0.8, s*0.35);
+      // Eye socket
+      ctx.fillStyle = '#0a2020';
+      ctx.fillRect(x + s*0.25, y + s*0.15, s*0.5, s*0.35);
+      break;
+    // === NETHER/END ITEMS ===
+    case B.FLINT:
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x + s*0.3, y + s*0.1, s*0.4, s*0.8);
+      ctx.fillStyle = '#444';
+      ctx.fillRect(x + s*0.35, y + s*0.15, s*0.25, s*0.5);
+      ctx.fillRect(x + s*0.4, y + s*0.1, s*0.15, s*0.15);
+      break;
+    case B.FLINT_AND_STEEL:
+      // Steel
+      ctx.fillStyle = '#888';
+      ctx.fillRect(x + s*0.15, y + s*0.4, s*0.35, s*0.5);
+      ctx.fillStyle = '#666';
+      ctx.fillRect(x + s*0.2, y + s*0.45, s*0.1, s*0.35);
+      // Flint
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x + s*0.5, y + s*0.15, s*0.35, s*0.6);
+      ctx.fillStyle = '#444';
+      ctx.fillRect(x + s*0.55, y + s*0.2, s*0.2, s*0.35);
+      break;
+    case B.ENDER_PEARL:
+      ctx.fillStyle = '#0a3030';
+      ctx.beginPath();
+      ctx.arc(x + s*0.5, y + s*0.5, s*0.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1a5050';
+      ctx.beginPath();
+      ctx.arc(x + s*0.45, y + s*0.4, s*0.15, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case B.BLAZE_ROD:
+      ctx.fillStyle = '#d0a020';
+      ctx.fillRect(x + s*0.4, y + s*0.05, s*0.2, s*0.9);
+      ctx.fillStyle = '#f0c040';
+      ctx.fillRect(x + s*0.35, y + s*0.15, s*0.3, s*0.1);
+      ctx.fillRect(x + s*0.35, y + s*0.45, s*0.3, s*0.1);
+      ctx.fillRect(x + s*0.35, y + s*0.75, s*0.3, s*0.1);
+      break;
+    case B.BLAZE_POWDER:
+      ctx.fillStyle = '#f0a020';
+      ctx.fillRect(x + s*0.3, y + s*0.25, s*0.15, s*0.5);
+      ctx.fillRect(x + s*0.55, y + s*0.2, s*0.15, s*0.55);
+      ctx.fillStyle = '#e08010';
+      ctx.fillRect(x + s*0.4, y + s*0.35, s*0.2, s*0.35);
+      break;
+    case B.EYE_OF_ENDER:
+      // Outer pearl
+      ctx.fillStyle = '#1a5050';
+      ctx.beginPath();
+      ctx.arc(x + s*0.5, y + s*0.5, s*0.38, 0, Math.PI * 2);
+      ctx.fill();
+      // Inner eye
+      ctx.fillStyle = '#80f080';
+      ctx.beginPath();
+      ctx.arc(x + s*0.5, y + s*0.5, s*0.2, 0, Math.PI * 2);
+      ctx.fill();
+      // Pupil
+      ctx.fillStyle = '#104010';
+      ctx.fillRect(x + s*0.45, y + s*0.4, s*0.1, s*0.2);
+      break;
+    case B.GOLD_NUGGET:
+      ctx.fillStyle = '#fcdb4a';
+      ctx.fillRect(x + s*0.3, y + s*0.3, s*0.4, s*0.4);
+      ctx.fillStyle = '#d4b030';
+      ctx.fillRect(x + s*0.35, y + s*0.4, s*0.15, s*0.2);
+      break;
+    case B.GHAST_TEAR:
+      ctx.fillStyle = '#e8e8f8';
+      ctx.beginPath();
+      ctx.moveTo(x + s*0.5, y + s*0.1);
+      ctx.lineTo(x + s*0.7, y + s*0.5);
+      ctx.lineTo(x + s*0.5, y + s*0.9);
+      ctx.lineTo(x + s*0.3, y + s*0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#d0d0e8';
+      ctx.fillRect(x + s*0.4, y + s*0.3, s*0.2, s*0.3);
+      break;
+    case B.GRAVEL:
+      ctx.fillStyle = '#808080';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#909090';
+      ctx.fillRect(x + s*0.1, y + s*0.15, s*0.25, s*0.2);
+      ctx.fillRect(x + s*0.55, y + s*0.55, s*0.3, s*0.25);
+      ctx.fillStyle = '#707070';
+      ctx.fillRect(x + s*0.5, y + s*0.1, s*0.25, s*0.2);
+      ctx.fillRect(x + s*0.15, y + s*0.6, s*0.2, s*0.2);
+      ctx.fillRect(x + s*0.35, y + s*0.35, s*0.15, s*0.15);
       break;
     default:
       ctx.fillStyle = '#f0f';

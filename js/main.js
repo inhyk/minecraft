@@ -16,6 +16,12 @@ function gameLoop(timestamp) {
   if (gameState === STATE.TITLE) {
     updateTitle(dt);
     drawTitle();
+  } else if (gameState === STATE.WORLD_SELECT) {
+    updateTitle(dt);
+    drawWorldSelectScreen();
+  } else if (gameState === STATE.CONTROLS) {
+    updateTitle(dt);
+    drawControlsScreen();
   } else if (gameState === STATE.CONNECT) {
     titleTime += dt * 0.001;
     drawConnectScreen();
@@ -35,12 +41,27 @@ function gameLoop(timestamp) {
       updateAnimals(dt);
       updateVillagers(dt);
     }
+    // Nether mobs (single player or host)
+    if (typeof spawnNetherMobs === 'function') spawnNetherMobs(dt);
+    if (typeof updateNetherMobs === 'function') updateNetherMobs(dt);
+    if (typeof updateFireballs === 'function') updateFireballs(dt);
+    // End mobs
+    if (typeof spawnEndMobs === 'function') spawnEndMobs(dt);
+    if (typeof updateEndMobs === 'function') updateEndMobs(dt);
     updateArrows(dt);
     updateDroppedItems(dt);
     updateNetwork(dt);
+    if (typeof updatePortals === 'function') updatePortals(dt);
+    if (typeof updateAchievementToast === 'function') updateAchievementToast(dt);
+    if (typeof checkExplorationAchievements === 'function') checkExplorationAchievements();
+    if (typeof checkArmorAchievements === 'function') checkArmorAchievements();
+    if (typeof updateAutosave === 'function') updateAutosave(dt);
 
     drawSky();
-    drawClouds();
+    // Only draw clouds in Overworld
+    if (typeof currentDimension === 'undefined' || currentDimension === DIMENSION.OVERWORLD) {
+      drawClouds();
+    }
     drawWorld();
     drawDroppedItems();
     drawParticles();
@@ -48,6 +69,9 @@ function gameLoop(timestamp) {
     drawMobs();
     drawAnimals();
     drawVillagers();
+    if (typeof drawNetherMobs === 'function') drawNetherMobs();
+    if (typeof drawFireballs === 'function') drawFireballs();
+    if (typeof drawEndMobs === 'function') drawEndMobs();
     drawOtherPlayers();
     drawPlayerWithHurt();
     if (!inventoryOpen) {
@@ -60,6 +84,8 @@ function gameLoop(timestamp) {
     drawDeathScreen();
     drawInventory();
     drawTradeUI();
+    if (typeof drawAchievementsScreen === 'function') drawAchievementsScreen();
+    if (typeof drawAchievementToast === 'function') drawAchievementToast();
 
     // Multiplayer indicator
     if (isMultiplayer) {
@@ -80,7 +106,9 @@ function gameLoop(timestamp) {
 // Initialize Game
 // ============================================================
 resize();
+window.addEventListener('resize', resize);
 initTitle();
+initAchievements();
 
 // Initialize Supabase auth
 (async function initAuth() {

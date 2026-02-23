@@ -155,6 +155,10 @@ function updateAnimals(dt) {
     if (a.health <= 0) {
       spawnAnimalDrops(a);
       spawnBreakParticles(Math.floor(a.x / BLOCK_SIZE), Math.floor(a.y / BLOCK_SIZE), B.DIRT);
+      // Achievement
+      if (typeof checkAnimalKillAchievement === 'function') {
+        checkAnimalKillAchievement(a.type);
+      }
       animals.splice(i, 1);
     }
   }
