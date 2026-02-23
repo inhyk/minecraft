@@ -1,3 +1,5 @@
 node_modules/
 tmpclaude-*-cwd
 .vercel
+.mcp.json
+image.png
