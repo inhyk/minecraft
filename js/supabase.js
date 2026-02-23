@@ -107,13 +107,38 @@ async function checkAuthSession() {
   return currentUser;
 }
 
+// Get the correct redirect URL (handles both local and deployed environments)
+function getRedirectUrl() {
+  // Use current origin - works for both localhost and deployed URLs
+  const origin = window.location.origin;
+
+  // If we're on a known deployed domain, use HTTPS
+  if (origin.includes('onrender.com') ||
+      origin.includes('vercel.app') ||
+      origin.includes('netlify.app') ||
+      origin.includes('railway.app')) {
+    return origin;
+  }
+
+  // For localhost, use the current origin
+  return origin;
+}
+
 // Sign in with Google
 async function signInWithGoogle() {
   initSupabase();
+
+  const redirectUrl = getRedirectUrl();
+  console.log('OAuth redirect URL:', redirectUrl);
+
   const { data, error } = await supabaseClient.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin
+      redirectTo: redirectUrl,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      }
     }
   });
   if (error) {
