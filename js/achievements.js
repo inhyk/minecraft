@@ -442,30 +442,29 @@ let gameStats = {
   enteredEnd: false,
 };
 
-// Load achievements from localStorage
+// Load achievements (now loaded from world save, this resets for new session)
 function loadAchievements() {
-  try {
-    const saved = localStorage.getItem('minecraft2d_achievements');
-    if (saved) {
-      unlockedAchievements = JSON.parse(saved);
-    }
-    const stats = localStorage.getItem('minecraft2d_stats');
-    if (stats) {
-      gameStats = JSON.parse(stats);
-    }
-  } catch (e) {
-    console.error('Failed to load achievements:', e);
-  }
+  // Achievements are now per-world and loaded via worldsave.js loadWorld()
+  // This function resets to empty for fresh start
+  unlockedAchievements = {};
+  gameStats = {
+    blocksPlaced: 0,
+    blocksMined: 0,
+    mobsKilled: { zombie: 0, skeleton: 0, creeper: 0, pigman: 0, blaze: 0, ghast: 0, enderman: 0, dragon: 0 },
+    animalsKilled: { pig: 0, cow: 0, sheep: 0, chicken: 0 },
+    tradesCompleted: 0,
+    damageTaken: 0,
+    portalLit: false,
+    enteredNether: false,
+    enteredEnd: false,
+  };
 }
 
-// Save achievements to localStorage
+// Save achievements (now saved via worldsave.js saveWorld())
 function saveAchievements() {
-  try {
-    localStorage.setItem('minecraft2d_achievements', JSON.stringify(unlockedAchievements));
-    localStorage.setItem('minecraft2d_stats', JSON.stringify(gameStats));
-  } catch (e) {
-    console.error('Failed to save achievements:', e);
-  }
+  // Achievements are saved as part of world data in worldsave.js
+  // This function is kept for compatibility but does nothing now
+  // World auto-save handles persistence
 }
 
 // Check if achievement is unlocked

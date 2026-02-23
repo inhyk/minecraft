@@ -51,6 +51,9 @@ function saveWorld(worldName) {
         offhand: player.offhand,
         selectedSlot: player.selectedSlot,
       },
+      // Achievements data (per-world)
+      achievements: unlockedAchievements,
+      gameStats: gameStats,
       // Current dimension
       dimension: currentDimension,
       // Block changes for each dimension (only save modified chunks)
@@ -203,6 +206,28 @@ function loadWorld(worldName) {
     // Generate any missing chunks around player
     ensureChunksLoaded();
 
+    // Load achievements for this world
+    if (worldData.achievements) {
+      unlockedAchievements = worldData.achievements;
+    } else {
+      unlockedAchievements = {};
+    }
+    if (worldData.gameStats) {
+      gameStats = worldData.gameStats;
+    } else {
+      gameStats = {
+        blocksPlaced: 0,
+        blocksMined: 0,
+        mobsKilled: { zombie: 0, skeleton: 0, creeper: 0, pigman: 0, blaze: 0, ghast: 0, enderman: 0, dragon: 0 },
+        animalsKilled: { pig: 0, cow: 0, sheep: 0, chicken: 0 },
+        tradesCompleted: 0,
+        damageTaken: 0,
+        portalLit: false,
+        enteredNether: false,
+        enteredEnd: false,
+      };
+    }
+
     console.log('World loaded:', worldName);
     return true;
   } catch (e) {
@@ -237,6 +262,22 @@ function createNewWorld(worldName) {
   // Generate random seed
   const seed = Math.floor(Math.random() * 1000000);
   initWorldSeed(seed);
+
+  // Reset achievements for new world
+  unlockedAchievements = {};
+  gameStats = {
+    blocksPlaced: 0,
+    blocksMined: 0,
+    mobsKilled: { zombie: 0, skeleton: 0, creeper: 0, pigman: 0, blaze: 0, ghast: 0, enderman: 0, dragon: 0 },
+    animalsKilled: { pig: 0, cow: 0, sheep: 0, chicken: 0 },
+    tradesCompleted: 0,
+    damageTaken: 0,
+    portalLit: false,
+    enteredNether: false,
+    enteredEnd: false,
+  };
+  achievementQueue = [];
+  currentToast = null;
 
   // Reset everything
   dimensionChunks = {
