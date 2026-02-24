@@ -41,15 +41,23 @@ function spawnAnimals(dt) {
   const spawnBX = Math.floor(player.x / BLOCK_SIZE) + dir * dist;
   // No world bounds check needed (infinite world)
 
-  // Find surface
+  // Find surface (skip water)
   let spawnBY = 0;
   for (let y = 0; y < WORLD_HEIGHT; y++) {
+    const block = getBlock(spawnBX, y);
+    if (block === B.WATER || block === B.LAVA) continue;
     if (isSolid(spawnBX, y)) { spawnBY = y - 1; break; }
   }
   if (spawnBY <= 0) return;
 
-  // Only spawn on grass (surface)
-  if (getBlock(spawnBX, spawnBY + 1) !== B.GRASS) return;
+  // Don't spawn in water or lava
+  const blockAtSpawn = getBlock(spawnBX, spawnBY);
+  if (blockAtSpawn === B.WATER || blockAtSpawn === B.LAVA) return;
+
+  // Only spawn on valid surface blocks (grass, snow, sand, podzol, mycelium)
+  const surfaceBlock = getBlock(spawnBX, spawnBY + 1);
+  const validSurface = [B.GRASS, B.SNOW, B.SAND, B.PODZOL, B.MYCELIUM, B.COARSE_DIRT, B.MOSS_BLOCK];
+  if (!validSurface.includes(surfaceBlock)) return;
 
   // Check space is clear
   if (isSolid(spawnBX, spawnBY)) return;

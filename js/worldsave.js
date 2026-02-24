@@ -203,6 +203,10 @@ function loadWorld(worldName) {
     cursorItem = null;
     chatMessages = [];
 
+    // Set as host for single player (enables mob/animal spawning)
+    isHost = true;
+    isMultiplayer = false;
+
     // Generate any missing chunks around player
     ensureChunksLoaded();
 

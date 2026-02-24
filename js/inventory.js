@@ -2,6 +2,31 @@
 // Inventory System
 // ============================================================
 
+// Helper: Normalize block types for crafting (treat all plank/log variants as equivalent)
+function normalizeForCrafting(type) {
+  // All planks -> B.PLANKS
+  if (type === B.OAK_PLANKS || type === B.BIRCH_PLANKS || type === B.SPRUCE_PLANKS ||
+      type === B.JUNGLE_PLANKS || type === B.ACACIA_PLANKS || type === B.DARK_OAK_PLANKS) {
+    return B.PLANKS;
+  }
+  // All logs -> B.WOOD
+  if (type === B.OAK_LOG || type === B.BIRCH_LOG || type === B.SPRUCE_LOG ||
+      type === B.JUNGLE_LOG || type === B.ACACIA_LOG || type === B.DARK_OAK_LOG ||
+      type === B.CRIMSON_STEM || type === B.WARPED_STEM) {
+    return B.WOOD;
+  }
+  // All cobblestone variants -> B.COBBLESTONE
+  if (type === B.COBBLED_DEEPSLATE || type === B.MOSSY_COBBLESTONE) {
+    return B.COBBLESTONE;
+  }
+  // All stone variants -> B.STONE for crafting
+  if (type === B.ANDESITE || type === B.DIORITE || type === B.GRANITE ||
+      type === B.DEEPSLATE || type === B.BLACKSTONE) {
+    return B.STONE;
+  }
+  return type;
+}
+
 const CRAFT_RECIPES = [
   // --- Single (any position, 1 item) ---
   { pattern: 'single', input: B.WOOD, output: { type: B.PLANKS, count: 4 } },
@@ -9,6 +34,12 @@ const CRAFT_RECIPES = [
 
   // --- 2x2 recipes (work in both 2x2 and 3x3) ---
   { pattern: '2x2', input: [B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS], output: { type: B.CRAFT_TABLE, count: 1 } },
+  { pattern: '2x2', input: [B.OAK_PLANKS, B.OAK_PLANKS, B.OAK_PLANKS, B.OAK_PLANKS], output: { type: B.CRAFT_TABLE, count: 1 } },
+  { pattern: '2x2', input: [B.BIRCH_PLANKS, B.BIRCH_PLANKS, B.BIRCH_PLANKS, B.BIRCH_PLANKS], output: { type: B.CRAFT_TABLE, count: 1 } },
+  { pattern: '2x2', input: [B.SPRUCE_PLANKS, B.SPRUCE_PLANKS, B.SPRUCE_PLANKS, B.SPRUCE_PLANKS], output: { type: B.CRAFT_TABLE, count: 1 } },
+  { pattern: '2x2', input: [B.JUNGLE_PLANKS, B.JUNGLE_PLANKS, B.JUNGLE_PLANKS, B.JUNGLE_PLANKS], output: { type: B.CRAFT_TABLE, count: 1 } },
+  { pattern: '2x2', input: [B.ACACIA_PLANKS, B.ACACIA_PLANKS, B.ACACIA_PLANKS, B.ACACIA_PLANKS], output: { type: B.CRAFT_TABLE, count: 1 } },
+  { pattern: '2x2', input: [B.DARK_OAK_PLANKS, B.DARK_OAK_PLANKS, B.DARK_OAK_PLANKS, B.DARK_OAK_PLANKS], output: { type: B.CRAFT_TABLE, count: 1 } },
   { pattern: '2x2', input: [B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE], output: { type: B.BRICK, count: 1 } },
   { pattern: '2x2', input: [B.SAND, B.SAND, B.SAND, B.SAND], output: { type: B.GLASS, count: 4 } },
   { pattern: '2x2', input: [B.DIRT, B.DIRT, B.DIRT, B.DIRT], output: { type: B.GRASS, count: 4 } },
@@ -16,6 +47,12 @@ const CRAFT_RECIPES = [
   // Sticks: 2 planks vertically = 4 sticks
   { pattern: '2x2', input: [B.PLANKS, null, B.PLANKS, null], output: { type: B.STICK, count: 4 } },
   { pattern: '2x2', input: [null, B.PLANKS, null, B.PLANKS], output: { type: B.STICK, count: 4 } },
+  { pattern: '2x2', input: [B.OAK_PLANKS, null, B.OAK_PLANKS, null], output: { type: B.STICK, count: 4 } },
+  { pattern: '2x2', input: [B.BIRCH_PLANKS, null, B.BIRCH_PLANKS, null], output: { type: B.STICK, count: 4 } },
+  { pattern: '2x2', input: [B.SPRUCE_PLANKS, null, B.SPRUCE_PLANKS, null], output: { type: B.STICK, count: 4 } },
+  { pattern: '2x2', input: [B.JUNGLE_PLANKS, null, B.JUNGLE_PLANKS, null], output: { type: B.STICK, count: 4 } },
+  { pattern: '2x2', input: [B.ACACIA_PLANKS, null, B.ACACIA_PLANKS, null], output: { type: B.STICK, count: 4 } },
+  { pattern: '2x2', input: [B.DARK_OAK_PLANKS, null, B.DARK_OAK_PLANKS, null], output: { type: B.STICK, count: 4 } },
 
   // --- 3x3 recipes (crafting table only) ---
   // Block recipes
@@ -283,11 +320,487 @@ const CRAFT_RECIPES = [
   ], output: { type: B.GOLD_ORE, count: 1 } },
   // Obsidian crafting (water + lava simulation - using cobblestone as placeholder)
   { pattern: '2x2', input: [B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE], output: { type: B.OBSIDIAN, count: 1 } },
+
+  // ===== NEW WOOD VARIANTS =====
+  { pattern: 'single', input: B.OAK_LOG, output: { type: B.OAK_PLANKS, count: 4 } },
+  { pattern: 'single', input: B.BIRCH_LOG, output: { type: B.BIRCH_PLANKS, count: 4 } },
+  { pattern: 'single', input: B.SPRUCE_LOG, output: { type: B.SPRUCE_PLANKS, count: 4 } },
+  { pattern: 'single', input: B.JUNGLE_LOG, output: { type: B.JUNGLE_PLANKS, count: 4 } },
+  { pattern: 'single', input: B.ACACIA_LOG, output: { type: B.ACACIA_PLANKS, count: 4 } },
+  { pattern: 'single', input: B.DARK_OAK_LOG, output: { type: B.DARK_OAK_PLANKS, count: 4 } },
+  { pattern: 'single', input: B.CRIMSON_STEM, output: { type: B.PLANKS, count: 4 } },
+  { pattern: 'single', input: B.WARPED_STEM, output: { type: B.PLANKS, count: 4 } },
+
+  // ===== STONE VARIANTS =====
+  { pattern: '2x2', input: [B.STONE_BRICK, B.STONE_BRICK, B.STONE_BRICK, B.STONE_BRICK], output: { type: B.SMOOTH_STONE, count: 4 } },
+  { pattern: '2x2', input: [B.STONE, B.STONE, B.STONE, B.STONE], output: { type: B.STONE_BRICK, count: 4 } },
+  { pattern: '2x2', input: [B.SAND, B.SAND, B.SAND, B.SAND], output: { type: B.SANDSTONE, count: 1 } },
+  { pattern: '2x2', input: [B.RED_SAND, B.RED_SAND, B.RED_SAND, B.RED_SAND], output: { type: B.RED_SANDSTONE, count: 1 } },
+  { pattern: 'single', input: B.ANDESITE, output: { type: B.POLISHED_ANDESITE, count: 1 } },
+  { pattern: 'single', input: B.DIORITE, output: { type: B.POLISHED_DIORITE, count: 1 } },
+  { pattern: 'single', input: B.GRANITE, output: { type: B.POLISHED_GRANITE, count: 1 } },
+  { pattern: 'single', input: B.DEEPSLATE, output: { type: B.COBBLED_DEEPSLATE, count: 1 } },
+  { pattern: 'single', input: B.BASALT, output: { type: B.POLISHED_BASALT, count: 1 } },
+  { pattern: 'single', input: B.BLACKSTONE, output: { type: B.POLISHED_BLACKSTONE, count: 1 } },
+
+  // ===== METAL BLOCKS =====
+  { pattern: '3x3', input: [
+    B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT,
+    B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT,
+    B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT,
+  ], output: { type: B.IRON_BLOCK, count: 1 } },
+  { pattern: '3x3', input: [
+    B.GOLD_INGOT, B.GOLD_INGOT, B.GOLD_INGOT,
+    B.GOLD_INGOT, B.GOLD_INGOT, B.GOLD_INGOT,
+    B.GOLD_INGOT, B.GOLD_INGOT, B.GOLD_INGOT,
+  ], output: { type: B.GOLD_BLOCK, count: 1 } },
+  { pattern: '3x3', input: [
+    B.DIAMOND, B.DIAMOND, B.DIAMOND,
+    B.DIAMOND, B.DIAMOND, B.DIAMOND,
+    B.DIAMOND, B.DIAMOND, B.DIAMOND,
+  ], output: { type: B.DIAMOND_BLOCK, count: 1 } },
+  { pattern: '3x3', input: [
+    B.EMERALD, B.EMERALD, B.EMERALD,
+    B.EMERALD, B.EMERALD, B.EMERALD,
+    B.EMERALD, B.EMERALD, B.EMERALD,
+  ], output: { type: B.EMERALD_BLOCK, count: 1 } },
+  { pattern: '3x3', input: [
+    B.LAPIS, B.LAPIS, B.LAPIS,
+    B.LAPIS, B.LAPIS, B.LAPIS,
+    B.LAPIS, B.LAPIS, B.LAPIS,
+  ], output: { type: B.LAPIS_BLOCK, count: 1 } },
+  { pattern: '3x3', input: [
+    B.REDSTONE, B.REDSTONE, B.REDSTONE,
+    B.REDSTONE, B.REDSTONE, B.REDSTONE,
+    B.REDSTONE, B.REDSTONE, B.REDSTONE,
+  ], output: { type: B.REDSTONE_BLOCK, count: 1 } },
+  { pattern: '3x3', input: [
+    B.COAL, B.COAL, B.COAL,
+    B.COAL, B.COAL, B.COAL,
+    B.COAL, B.COAL, B.COAL,
+  ], output: { type: B.COAL_BLOCK, count: 1 } },
+  { pattern: '3x3', input: [
+    B.COPPER_INGOT, B.COPPER_INGOT, B.COPPER_INGOT,
+    B.COPPER_INGOT, B.COPPER_INGOT, B.COPPER_INGOT,
+    B.COPPER_INGOT, B.COPPER_INGOT, B.COPPER_INGOT,
+  ], output: { type: B.COPPER_BLOCK, count: 1 } },
+  { pattern: '3x3', input: [
+    B.NETHERITE_INGOT, B.NETHERITE_INGOT, B.NETHERITE_INGOT,
+    B.NETHERITE_INGOT, B.NETHERITE_INGOT, B.NETHERITE_INGOT,
+    B.NETHERITE_INGOT, B.NETHERITE_INGOT, B.NETHERITE_INGOT,
+  ], output: { type: B.NETHERITE_BLOCK, count: 1 } },
+
+  // Block to ingots/items
+  { pattern: 'single', input: B.IRON_BLOCK, output: { type: B.IRON_INGOT, count: 9 } },
+  { pattern: 'single', input: B.GOLD_BLOCK, output: { type: B.GOLD_INGOT, count: 9 } },
+  { pattern: 'single', input: B.DIAMOND_BLOCK, output: { type: B.DIAMOND, count: 9 } },
+  { pattern: 'single', input: B.EMERALD_BLOCK, output: { type: B.EMERALD, count: 9 } },
+  { pattern: 'single', input: B.LAPIS_BLOCK, output: { type: B.LAPIS, count: 9 } },
+  { pattern: 'single', input: B.REDSTONE_BLOCK, output: { type: B.REDSTONE, count: 9 } },
+  { pattern: 'single', input: B.COAL_BLOCK, output: { type: B.COAL, count: 9 } },
+  { pattern: 'single', input: B.NETHERITE_BLOCK, output: { type: B.NETHERITE_INGOT, count: 9 } },
+
+  // Smelting (single conversions)
+  { pattern: 'single', input: B.RAW_IRON, output: { type: B.IRON_INGOT, count: 1 } },
+  { pattern: 'single', input: B.RAW_GOLD, output: { type: B.GOLD_INGOT, count: 1 } },
+  { pattern: 'single', input: B.RAW_COPPER, output: { type: B.COPPER_INGOT, count: 1 } },
+  { pattern: 'single', input: B.COAL_ORE, output: { type: B.COAL, count: 1 } },
+  { pattern: 'single', input: B.IRON_ORE, output: { type: B.IRON_INGOT, count: 1 } },
+  { pattern: 'single', input: B.GOLD_ORE, output: { type: B.GOLD_INGOT, count: 1 } },
+  { pattern: 'single', input: B.COPPER_ORE, output: { type: B.COPPER_INGOT, count: 1 } },
+  { pattern: 'single', input: B.DIAMOND_ORE, output: { type: B.DIAMOND, count: 1 } },
+  { pattern: 'single', input: B.EMERALD_ORE, output: { type: B.EMERALD, count: 1 } },
+  { pattern: 'single', input: B.LAPIS_ORE, output: { type: B.LAPIS, count: 4 } },
+  { pattern: 'single', input: B.REDSTONE_ORE, output: { type: B.REDSTONE, count: 4 } },
+  { pattern: 'single', input: B.NETHER_QUARTZ_ORE, output: { type: B.QUARTZ, count: 1 } },
+
+  // Cooking food
+  { pattern: 'single', input: B.RAW_PORK, output: { type: B.COOKED_PORK, count: 1 } },
+  { pattern: 'single', input: B.RAW_BEEF, output: { type: B.COOKED_BEEF, count: 1 } },
+  { pattern: 'single', input: B.RAW_CHICKEN, output: { type: B.COOKED_CHICKEN, count: 1 } },
+  { pattern: 'single', input: B.POTATO, output: { type: B.BAKED_POTATO, count: 1 } },
+  { pattern: 'single', input: B.KELP, output: { type: B.DRIED_KELP, count: 1 } },
+
+  // ===== FOOD RECIPES =====
+  // Note: We use HAY_BALE as wheat equivalent
+  { pattern: 'single', input: B.HAY_BALE, output: { type: B.BREAD, count: 3 } },
+  { pattern: '3x3', input: [
+    B.GOLD_INGOT, B.GOLD_INGOT, B.GOLD_INGOT,
+    B.GOLD_INGOT, B.APPLE, B.GOLD_INGOT,
+    B.GOLD_INGOT, B.GOLD_INGOT, B.GOLD_INGOT,
+  ], output: { type: B.GOLDEN_APPLE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.GOLD_BLOCK, B.GOLD_BLOCK, B.GOLD_BLOCK,
+    B.GOLD_BLOCK, B.APPLE, B.GOLD_BLOCK,
+    B.GOLD_BLOCK, B.GOLD_BLOCK, B.GOLD_BLOCK,
+  ], output: { type: B.ENCHANTED_GOLDEN_APPLE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.GOLD_INGOT, B.GOLD_INGOT, B.GOLD_INGOT,
+    B.GOLD_INGOT, B.CARROT, B.GOLD_INGOT,
+    B.GOLD_INGOT, B.GOLD_INGOT, B.GOLD_INGOT,
+  ], output: { type: B.GOLDEN_CARROT, count: 1 } },
+  { pattern: '3x3', input: [
+    B.DRIED_KELP, B.DRIED_KELP, B.DRIED_KELP,
+    B.DRIED_KELP, B.DRIED_KELP, B.DRIED_KELP,
+    B.DRIED_KELP, B.DRIED_KELP, B.DRIED_KELP,
+  ], output: { type: B.DRIED_KELP_BLOCK, count: 1 } },
+
+  // ===== NETHERITE TOOLS (upgrade from diamond) =====
+  { pattern: '2x2', input: [B.DIAMOND_PICKAXE, B.NETHERITE_INGOT, null, null], output: { type: B.NETHERITE_PICKAXE, count: 1 } },
+  { pattern: '2x2', input: [B.DIAMOND_AXE, B.NETHERITE_INGOT, null, null], output: { type: B.NETHERITE_AXE, count: 1 } },
+  { pattern: '2x2', input: [B.DIAMOND_SWORD, B.NETHERITE_INGOT, null, null], output: { type: B.NETHERITE_SWORD, count: 1 } },
+  { pattern: '2x2', input: [B.DIAMOND_SHOVEL, B.NETHERITE_INGOT, null, null], output: { type: B.NETHERITE_SHOVEL, count: 1 } },
+
+  // ===== NETHERITE ARMOR (upgrade from diamond) =====
+  { pattern: '2x2', input: [B.DIAMOND_HELMET, B.NETHERITE_INGOT, null, null], output: { type: B.NETHERITE_HELMET, count: 1 } },
+  { pattern: '2x2', input: [B.DIAMOND_CHESTPLATE, B.NETHERITE_INGOT, null, null], output: { type: B.NETHERITE_CHESTPLATE, count: 1 } },
+  { pattern: '2x2', input: [B.DIAMOND_LEGGINGS, B.NETHERITE_INGOT, null, null], output: { type: B.NETHERITE_LEGGINGS, count: 1 } },
+  { pattern: '2x2', input: [B.DIAMOND_BOOTS, B.NETHERITE_INGOT, null, null], output: { type: B.NETHERITE_BOOTS, count: 1 } },
+
+  // Netherite Ingot (4 scraps + 4 gold)
+  { pattern: '3x3', input: [
+    B.NETHERITE_SCRAP, B.NETHERITE_SCRAP, null,
+    B.NETHERITE_SCRAP, B.NETHERITE_SCRAP, null,
+    B.GOLD_INGOT, B.GOLD_INGOT, null,
+  ], output: { type: B.NETHERITE_INGOT, count: 1 } },
+  { pattern: '2x2', input: [B.NETHERITE_SCRAP, B.NETHERITE_SCRAP, B.GOLD_INGOT, B.GOLD_INGOT], output: { type: B.NETHERITE_INGOT, count: 1 } },
+
+  // Ancient Debris -> Netherite Scrap
+  { pattern: 'single', input: B.ANCIENT_DEBRIS, output: { type: B.NETHERITE_SCRAP, count: 1 } },
+
+  // ===== MISC BLOCKS =====
+  { pattern: '3x3', input: [
+    B.BONE, B.BONE, B.BONE,
+    B.BONE, B.BONE, B.BONE,
+    B.BONE, B.BONE, B.BONE,
+  ], output: { type: B.BONE_BLOCK, count: 1 } },
+  { pattern: 'single', input: B.BONE_BLOCK, output: { type: B.BONE, count: 9 } },
+  { pattern: '3x3', input: [
+    B.PLANKS, B.PLANKS, B.PLANKS,
+    B.PLANKS, null, B.PLANKS,
+    B.PLANKS, B.PLANKS, B.PLANKS,
+  ], output: { type: B.CHEST, count: 1 } },
+  { pattern: '3x3', input: [
+    null, null, null,
+    B.STICK, B.STICK, B.STICK,
+    B.STICK, B.STICK, B.STICK,
+  ], output: { type: B.LADDER, count: 3 } },
+  { pattern: '2x2', input: [B.COAL, null, B.STICK, null], output: { type: B.TORCH, count: 4 } },
+  { pattern: '2x2', input: [null, B.COAL, null, B.STICK], output: { type: B.TORCH, count: 4 } },
+  { pattern: '3x3', input: [
+    B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE,
+    B.COBBLESTONE, null, B.COBBLESTONE,
+    B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE,
+  ], output: { type: B.FURNACE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.PLANKS, B.PLANKS, B.PLANKS,
+    B.PLANKS, B.PLANKS, B.PLANKS,
+    null, null, null,
+  ], output: { type: B.BOOKSHELF, count: 1 } },
+  { pattern: 'single', input: B.PUMPKIN, output: { type: B.JACK_O_LANTERN, count: 1 } },
+
+  // ===== PRISMARINE =====
+  { pattern: '2x2', input: [B.PRISMARINE, B.PRISMARINE, B.PRISMARINE, B.PRISMARINE], output: { type: B.DARK_PRISMARINE, count: 1 } },
+  { pattern: '3x3', input: [
+    B.PRISMARINE, B.PRISMARINE, B.PRISMARINE,
+    B.PRISMARINE, B.GLOWSTONE, B.PRISMARINE,
+    B.PRISMARINE, B.PRISMARINE, B.PRISMARINE,
+  ], output: { type: B.SEA_LANTERN, count: 1 } },
+
+  // ===== BUCKETS =====
+  { pattern: '3x3', input: [
+    B.IRON_INGOT, null, B.IRON_INGOT,
+    null, B.IRON_INGOT, null,
+    null, null, null,
+  ], output: { type: B.BUCKET, count: 1 } },
+
+  // ===== DYES FROM FLOWERS =====
+  { pattern: 'single', input: B.DANDELION, output: { type: B.YELLOW_DYE, count: 1 } },
+  { pattern: 'single', input: B.POPPY, output: { type: B.RED_DYE, count: 1 } },
+  { pattern: 'single', input: B.BLUE_ORCHID, output: { type: B.LIGHT_BLUE_DYE, count: 1 } },
+  { pattern: 'single', input: B.ALLIUM, output: { type: B.MAGENTA_DYE, count: 1 } },
+  { pattern: 'single', input: B.AZURE_BLUET, output: { type: B.WHITE_DYE, count: 1 } },
+  { pattern: 'single', input: B.RED_TULIP, output: { type: B.RED_DYE, count: 1 } },
+  { pattern: 'single', input: B.ORANGE_TULIP, output: { type: B.ORANGE_DYE, count: 1 } },
+  { pattern: 'single', input: B.WHITE_TULIP, output: { type: B.WHITE_DYE, count: 1 } },
+  { pattern: 'single', input: B.PINK_TULIP, output: { type: B.PINK_DYE, count: 1 } },
+  { pattern: 'single', input: B.OXEYE_DAISY, output: { type: B.WHITE_DYE, count: 1 } },
+  { pattern: 'single', input: B.CORNFLOWER, output: { type: B.BLUE_DYE, count: 1 } },
+  { pattern: 'single', input: B.LILY_OF_VALLEY, output: { type: B.WHITE_DYE, count: 1 } },
+  { pattern: 'single', input: B.WITHER_ROSE, output: { type: B.BLACK_DYE, count: 1 } },
+  { pattern: 'single', input: B.SUNFLOWER, output: { type: B.YELLOW_DYE, count: 2 } },
+  { pattern: 'single', input: B.LILAC, output: { type: B.MAGENTA_DYE, count: 2 } },
+  { pattern: 'single', input: B.ROSE_BUSH, output: { type: B.RED_DYE, count: 2 } },
+  { pattern: 'single', input: B.PEONY, output: { type: B.PINK_DYE, count: 2 } },
+  { pattern: 'single', input: B.INK_SAC, output: { type: B.BLACK_DYE, count: 1 } },
+  { pattern: 'single', input: B.BONE, output: { type: B.WHITE_DYE, count: 3 } },
+  { pattern: 'single', input: B.LAPIS, output: { type: B.BLUE_DYE, count: 1 } },
+  { pattern: 'single', input: B.CACTUS, output: { type: B.GREEN_DYE, count: 1 } },
+  // Mixed dyes
+  { pattern: '2x2', input: [B.RED_DYE, B.YELLOW_DYE, null, null], output: { type: B.ORANGE_DYE, count: 2 } },
+  { pattern: '2x2', input: [B.RED_DYE, B.BLUE_DYE, null, null], output: { type: B.PURPLE_DYE, count: 2 } },
+  { pattern: '2x2', input: [B.BLUE_DYE, B.GREEN_DYE, null, null], output: { type: B.CYAN_DYE, count: 2 } },
+  { pattern: '2x2', input: [B.GREEN_DYE, B.WHITE_DYE, null, null], output: { type: B.LIME_DYE, count: 2 } },
+  { pattern: '2x2', input: [B.RED_DYE, B.WHITE_DYE, null, null], output: { type: B.PINK_DYE, count: 2 } },
+  { pattern: '2x2', input: [B.BLACK_DYE, B.WHITE_DYE, null, null], output: { type: B.GRAY_DYE, count: 2 } },
+  { pattern: '2x2', input: [B.PURPLE_DYE, B.PINK_DYE, null, null], output: { type: B.MAGENTA_DYE, count: 2 } },
+  { pattern: '2x2', input: [B.BLUE_DYE, B.WHITE_DYE, null, null], output: { type: B.LIGHT_BLUE_DYE, count: 2 } },
+
+  // ===== WOOL COLORS (wool + dye) =====
+  { pattern: '2x2', input: [B.WOOL, B.WHITE_DYE, null, null], output: { type: B.WHITE_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.ORANGE_DYE, null, null], output: { type: B.ORANGE_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.MAGENTA_DYE, null, null], output: { type: B.MAGENTA_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.LIGHT_BLUE_DYE, null, null], output: { type: B.LIGHT_BLUE_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.YELLOW_DYE, null, null], output: { type: B.YELLOW_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.LIME_DYE, null, null], output: { type: B.LIME_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.PINK_DYE, null, null], output: { type: B.PINK_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.GRAY_DYE, null, null], output: { type: B.GRAY_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.CYAN_DYE, null, null], output: { type: B.CYAN_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.PURPLE_DYE, null, null], output: { type: B.PURPLE_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.BLUE_DYE, null, null], output: { type: B.BLUE_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.BROWN_DYE, null, null], output: { type: B.BROWN_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.GREEN_DYE, null, null], output: { type: B.GREEN_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.RED_DYE, null, null], output: { type: B.RED_WOOL, count: 1 } },
+  { pattern: '2x2', input: [B.WOOL, B.BLACK_DYE, null, null], output: { type: B.BLACK_WOOL, count: 1 } },
+
+  // ===== TERRACOTTA COLORS (terracotta + dye) =====
+  { pattern: '2x2', input: [B.TERRACOTTA, B.WHITE_DYE, null, null], output: { type: B.WHITE_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.ORANGE_DYE, null, null], output: { type: B.ORANGE_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.MAGENTA_DYE, null, null], output: { type: B.MAGENTA_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.LIGHT_BLUE_DYE, null, null], output: { type: B.LIGHT_BLUE_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.YELLOW_DYE, null, null], output: { type: B.YELLOW_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.LIME_DYE, null, null], output: { type: B.LIME_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.PINK_DYE, null, null], output: { type: B.PINK_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.GRAY_DYE, null, null], output: { type: B.CYAN_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.CYAN_DYE, null, null], output: { type: B.CYAN_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.PURPLE_DYE, null, null], output: { type: B.PURPLE_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.BLUE_DYE, null, null], output: { type: B.BLUE_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.BROWN_DYE, null, null], output: { type: B.BROWN_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.GREEN_DYE, null, null], output: { type: B.GREEN_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.RED_DYE, null, null], output: { type: B.RED_TERRACOTTA, count: 1 } },
+  { pattern: '2x2', input: [B.TERRACOTTA, B.BLACK_DYE, null, null], output: { type: B.BLACK_TERRACOTTA, count: 1 } },
+
+  // ===== CONCRETE (sand + gravel + dye) =====
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.WHITE_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.WHITE_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.ORANGE_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.ORANGE_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.MAGENTA_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.MAGENTA_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.LIGHT_BLUE_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.LIGHT_BLUE_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.YELLOW_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.YELLOW_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.LIME_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.LIME_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.PINK_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.PINK_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.GRAY_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.GRAY_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.CYAN_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.CYAN_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.PURPLE_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.PURPLE_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.BLUE_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.BLUE_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.BROWN_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.BROWN_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.GREEN_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.GREEN_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.RED_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.RED_CONCRETE, count: 8 } },
+  { pattern: '3x3', input: [B.SAND, B.SAND, B.SAND, B.GRAVEL, B.BLACK_DYE, B.GRAVEL, B.SAND, B.SAND, B.SAND], output: { type: B.BLACK_CONCRETE, count: 8 } },
+
+  // ===== BEDS (wool + planks) =====
+  { pattern: '3x3', input: [B.WHITE_WOOL, B.WHITE_WOOL, B.WHITE_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.WHITE_BED, count: 1 } },
+  { pattern: '3x3', input: [B.ORANGE_WOOL, B.ORANGE_WOOL, B.ORANGE_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.ORANGE_BED, count: 1 } },
+  { pattern: '3x3', input: [B.MAGENTA_WOOL, B.MAGENTA_WOOL, B.MAGENTA_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.MAGENTA_BED, count: 1 } },
+  { pattern: '3x3', input: [B.LIGHT_BLUE_WOOL, B.LIGHT_BLUE_WOOL, B.LIGHT_BLUE_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.LIGHT_BLUE_BED, count: 1 } },
+  { pattern: '3x3', input: [B.YELLOW_WOOL, B.YELLOW_WOOL, B.YELLOW_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.YELLOW_BED, count: 1 } },
+  { pattern: '3x3', input: [B.LIME_WOOL, B.LIME_WOOL, B.LIME_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.LIME_BED, count: 1 } },
+  { pattern: '3x3', input: [B.PINK_WOOL, B.PINK_WOOL, B.PINK_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.PINK_BED, count: 1 } },
+  { pattern: '3x3', input: [B.GRAY_WOOL, B.GRAY_WOOL, B.GRAY_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.GRAY_BED, count: 1 } },
+  { pattern: '3x3', input: [B.CYAN_WOOL, B.CYAN_WOOL, B.CYAN_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.CYAN_BED, count: 1 } },
+  { pattern: '3x3', input: [B.PURPLE_WOOL, B.PURPLE_WOOL, B.PURPLE_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.PURPLE_BED, count: 1 } },
+  { pattern: '3x3', input: [B.BLUE_WOOL, B.BLUE_WOOL, B.BLUE_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.BLUE_BED, count: 1 } },
+  { pattern: '3x3', input: [B.BROWN_WOOL, B.BROWN_WOOL, B.BROWN_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.BROWN_BED, count: 1 } },
+  { pattern: '3x3', input: [B.GREEN_WOOL, B.GREEN_WOOL, B.GREEN_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.GREEN_BED, count: 1 } },
+  { pattern: '3x3', input: [B.RED_WOOL, B.RED_WOOL, B.RED_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.RED_BED, count: 1 } },
+  { pattern: '3x3', input: [B.BLACK_WOOL, B.BLACK_WOOL, B.BLACK_WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.BLACK_BED, count: 1 } },
+  // Simple bed recipe using regular wool
+  { pattern: '3x3', input: [B.WOOL, B.WOOL, B.WOOL, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.WHITE_BED, count: 1 } },
+
+  // ===== CARPETS (2 wool) =====
+  { pattern: '2x2', input: [B.WHITE_WOOL, B.WHITE_WOOL, null, null], output: { type: B.WHITE_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.ORANGE_WOOL, B.ORANGE_WOOL, null, null], output: { type: B.ORANGE_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.MAGENTA_WOOL, B.MAGENTA_WOOL, null, null], output: { type: B.MAGENTA_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.LIGHT_BLUE_WOOL, B.LIGHT_BLUE_WOOL, null, null], output: { type: B.LIGHT_BLUE_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.YELLOW_WOOL, B.YELLOW_WOOL, null, null], output: { type: B.YELLOW_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.LIME_WOOL, B.LIME_WOOL, null, null], output: { type: B.LIME_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.PINK_WOOL, B.PINK_WOOL, null, null], output: { type: B.PINK_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.GRAY_WOOL, B.GRAY_WOOL, null, null], output: { type: B.GRAY_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.CYAN_WOOL, B.CYAN_WOOL, null, null], output: { type: B.CYAN_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.PURPLE_WOOL, B.PURPLE_WOOL, null, null], output: { type: B.PURPLE_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.BLUE_WOOL, B.BLUE_WOOL, null, null], output: { type: B.BLUE_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.BROWN_WOOL, B.BROWN_WOOL, null, null], output: { type: B.BROWN_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.GREEN_WOOL, B.GREEN_WOOL, null, null], output: { type: B.GREEN_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.RED_WOOL, B.RED_WOOL, null, null], output: { type: B.RED_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.BLACK_WOOL, B.BLACK_WOOL, null, null], output: { type: B.BLACK_CARPET, count: 3 } },
+  { pattern: '2x2', input: [B.WOOL, B.WOOL, null, null], output: { type: B.WHITE_CARPET, count: 3 } },
+
+  // ===== DOORS =====
+  { pattern: '3x3', input: [B.OAK_PLANKS, B.OAK_PLANKS, null, B.OAK_PLANKS, B.OAK_PLANKS, null, B.OAK_PLANKS, B.OAK_PLANKS, null], output: { type: B.OAK_DOOR, count: 3 } },
+  { pattern: '3x3', input: [B.BIRCH_PLANKS, B.BIRCH_PLANKS, null, B.BIRCH_PLANKS, B.BIRCH_PLANKS, null, B.BIRCH_PLANKS, B.BIRCH_PLANKS, null], output: { type: B.BIRCH_DOOR, count: 3 } },
+  { pattern: '3x3', input: [B.SPRUCE_PLANKS, B.SPRUCE_PLANKS, null, B.SPRUCE_PLANKS, B.SPRUCE_PLANKS, null, B.SPRUCE_PLANKS, B.SPRUCE_PLANKS, null], output: { type: B.SPRUCE_DOOR, count: 3 } },
+  { pattern: '3x3', input: [B.JUNGLE_PLANKS, B.JUNGLE_PLANKS, null, B.JUNGLE_PLANKS, B.JUNGLE_PLANKS, null, B.JUNGLE_PLANKS, B.JUNGLE_PLANKS, null], output: { type: B.JUNGLE_DOOR, count: 3 } },
+  { pattern: '3x3', input: [B.ACACIA_PLANKS, B.ACACIA_PLANKS, null, B.ACACIA_PLANKS, B.ACACIA_PLANKS, null, B.ACACIA_PLANKS, B.ACACIA_PLANKS, null], output: { type: B.ACACIA_DOOR, count: 3 } },
+  { pattern: '3x3', input: [B.DARK_OAK_PLANKS, B.DARK_OAK_PLANKS, null, B.DARK_OAK_PLANKS, B.DARK_OAK_PLANKS, null, B.DARK_OAK_PLANKS, B.DARK_OAK_PLANKS, null], output: { type: B.DARK_OAK_DOOR, count: 3 } },
+  { pattern: '3x3', input: [B.PLANKS, B.PLANKS, null, B.PLANKS, B.PLANKS, null, B.PLANKS, B.PLANKS, null], output: { type: B.OAK_DOOR, count: 3 } },
+  { pattern: '3x3', input: [B.IRON_INGOT, B.IRON_INGOT, null, B.IRON_INGOT, B.IRON_INGOT, null, B.IRON_INGOT, B.IRON_INGOT, null], output: { type: B.IRON_DOOR, count: 3 } },
+
+  // ===== TRAPDOORS =====
+  { pattern: '3x3', input: [B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS, null, null, null], output: { type: B.OAK_TRAPDOOR, count: 2 } },
+  { pattern: '3x3', input: [B.IRON_INGOT, B.IRON_INGOT, null, B.IRON_INGOT, B.IRON_INGOT, null, null, null, null], output: { type: B.IRON_TRAPDOOR, count: 1 } },
+
+  // ===== FENCES & GATES =====
+  { pattern: '3x3', input: [B.PLANKS, B.STICK, B.PLANKS, B.PLANKS, B.STICK, B.PLANKS, null, null, null], output: { type: B.OAK_FENCE, count: 3 } },
+  { pattern: '3x3', input: [B.STICK, B.PLANKS, B.STICK, B.STICK, B.PLANKS, B.STICK, null, null, null], output: { type: B.OAK_FENCE_GATE, count: 1 } },
+  { pattern: '3x3', input: [B.NETHER_BRICK, B.NETHER_BRICK, B.NETHER_BRICK, B.NETHER_BRICK, B.NETHER_BRICK, B.NETHER_BRICK, null, null, null], output: { type: B.NETHER_BRICK_FENCE, count: 6 } },
+
+  // ===== TNT & EXPLOSIVES =====
+  { pattern: '3x3', input: [B.GUNPOWDER, B.SAND, B.GUNPOWDER, B.SAND, B.GUNPOWDER, B.SAND, B.GUNPOWDER, B.SAND, B.GUNPOWDER], output: { type: B.TNT, count: 1 } },
+
+  // ===== SLIME & HONEY BLOCKS =====
+  { pattern: '3x3', input: [
+    B.SLIMEBALL, B.SLIMEBALL, B.SLIMEBALL,
+    B.SLIMEBALL, B.SLIMEBALL, B.SLIMEBALL,
+    B.SLIMEBALL, B.SLIMEBALL, B.SLIMEBALL,
+  ], output: { type: B.SLIME_BLOCK, count: 1 } },
+  { pattern: 'single', input: B.SLIME_BLOCK, output: { type: B.SLIMEBALL, count: 9 } },
+  { pattern: '2x2', input: [B.HONEYCOMB, B.HONEYCOMB, B.HONEYCOMB, B.HONEYCOMB], output: { type: B.HONEY_BLOCK, count: 1 } },
+
+  // ===== QUARTZ BLOCKS =====
+  { pattern: '2x2', input: [B.QUARTZ, B.QUARTZ, B.QUARTZ, B.QUARTZ], output: { type: B.QUARTZ_BLOCK, count: 1 } },
+  { pattern: '3x3', input: [null, B.QUARTZ_BLOCK, null, null, B.QUARTZ_BLOCK, null, null, null, null], output: { type: B.QUARTZ_PILLAR, count: 2 } },
+  { pattern: 'single', input: B.QUARTZ_BLOCK, output: { type: B.SMOOTH_QUARTZ, count: 1 } },
+
+  // ===== PAPER & BOOKS =====
+  { pattern: '3x3', input: [B.SUGAR_CANE, B.SUGAR_CANE, B.SUGAR_CANE, null, null, null, null, null, null], output: { type: B.PAPER, count: 3 } },
+  { pattern: '3x3', input: [B.PAPER, B.PAPER, B.PAPER, B.LEATHER, null, null, null, null, null], output: { type: B.BOOK, count: 1 } },
+  { pattern: '3x3', input: [B.PLANKS, B.PLANKS, B.PLANKS, B.BOOK, B.BOOK, B.BOOK, B.PLANKS, B.PLANKS, B.PLANKS], output: { type: B.BOOKSHELF, count: 1 } },
+
+  // ===== ARROWS & BOWS =====
+  { pattern: '3x3', input: [null, B.FLINT, null, null, B.STICK, null, null, B.FEATHER, null], output: { type: B.ARROW, count: 4 } },
+  { pattern: '3x3', input: [null, B.STICK, B.STRING, B.STICK, null, B.STRING, null, B.STICK, B.STRING], output: { type: B.BOW, count: 1 } },
+  { pattern: '3x3', input: [B.STRING, B.STICK, null, B.STRING, null, B.STICK, B.STRING, B.STICK, null], output: { type: B.BOW, count: 1 } },
+  { pattern: '3x3', input: [B.STRING, B.IRON_INGOT, B.STRING, B.STICK, B.TRIPWIRE_HOOK, B.STICK, B.PLANKS, B.PLANKS, B.PLANKS], output: { type: B.CROSSBOW, count: 1 } },
+
+  // ===== FISHING ROD =====
+  { pattern: '3x3', input: [null, null, B.STICK, null, B.STICK, B.STRING, B.STICK, null, B.STRING], output: { type: B.FISHING_ROD, count: 1 } },
+
+  // ===== REDSTONE COMPONENTS =====
+  { pattern: '2x2', input: [B.REDSTONE, null, B.STICK, null], output: { type: B.REDSTONE_TORCH, count: 1 } },
+  { pattern: '3x3', input: [null, B.STICK, null, B.COBBLESTONE, null, null, null, null, null], output: { type: B.LEVER, count: 1 } },
+  { pattern: 'single', input: B.STONE, output: { type: B.STONE_BUTTON, count: 1 } },
+  { pattern: '2x2', input: [B.STONE, B.STONE, null, null], output: { type: B.STONE_PRESSURE_PLATE, count: 1 } },
+  { pattern: '3x3', input: [B.IRON_INGOT, B.STICK, null, B.PLANKS, null, null, null, null, null], output: { type: B.TRIPWIRE_HOOK, count: 2 } },
+  { pattern: '3x3', input: [null, B.REDSTONE_TORCH, null, B.REDSTONE, B.QUARTZ, B.REDSTONE, B.STONE, B.STONE, B.STONE], output: { type: B.COMPARATOR, count: 1 } },
+  { pattern: '3x3', input: [null, null, null, B.REDSTONE_TORCH, B.REDSTONE, B.REDSTONE_TORCH, B.STONE, B.STONE, B.STONE], output: { type: B.REPEATER, count: 1 } },
+
+  // ===== RAILS =====
+  { pattern: '3x3', input: [B.IRON_INGOT, null, B.IRON_INGOT, B.IRON_INGOT, B.STICK, B.IRON_INGOT, B.IRON_INGOT, null, B.IRON_INGOT], output: { type: B.RAIL, count: 16 } },
+  { pattern: '3x3', input: [B.GOLD_INGOT, null, B.GOLD_INGOT, B.GOLD_INGOT, B.STICK, B.GOLD_INGOT, B.GOLD_INGOT, B.REDSTONE, B.GOLD_INGOT], output: { type: B.POWERED_RAIL, count: 6 } },
+  { pattern: '3x3', input: [B.IRON_INGOT, null, B.IRON_INGOT, B.IRON_INGOT, B.STONE_PRESSURE_PLATE, B.IRON_INGOT, B.IRON_INGOT, B.REDSTONE, B.IRON_INGOT], output: { type: B.DETECTOR_RAIL, count: 6 } },
+
+  // ===== MINECARTS =====
+  { pattern: '3x3', input: [null, null, null, B.IRON_INGOT, null, B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT], output: { type: B.MINECART, count: 1 } },
+  { pattern: '2x2', input: [B.CHEST, B.MINECART, null, null], output: { type: B.CHEST_MINECART, count: 1 } },
+  { pattern: '2x2', input: [B.HOPPER, B.MINECART, null, null], output: { type: B.HOPPER_MINECART, count: 1 } },
+  { pattern: '2x2', input: [B.TNT, B.MINECART, null, null], output: { type: B.TNT_MINECART, count: 1 } },
+
+  // ===== BOATS =====
+  { pattern: '3x3', input: [null, null, null, B.PLANKS, null, B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS], output: { type: B.OAK_BOAT, count: 1 } },
+
+  // ===== PISTONS =====
+  { pattern: '3x3', input: [B.PLANKS, B.PLANKS, B.PLANKS, B.COBBLESTONE, B.IRON_INGOT, B.COBBLESTONE, B.COBBLESTONE, B.REDSTONE, B.COBBLESTONE], output: { type: B.PISTON, count: 1 } },
+  { pattern: '2x2', input: [B.SLIMEBALL, B.PISTON, null, null], output: { type: B.STICKY_PISTON, count: 1 } },
+
+  // ===== DISPENSER & DROPPER =====
+  { pattern: '3x3', input: [B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE, B.BOW, B.COBBLESTONE, B.COBBLESTONE, B.REDSTONE, B.COBBLESTONE], output: { type: B.DISPENSER, count: 1 } },
+  { pattern: '3x3', input: [B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE, null, B.COBBLESTONE, B.COBBLESTONE, B.REDSTONE, B.COBBLESTONE], output: { type: B.DROPPER, count: 1 } },
+
+  // ===== OBSERVER =====
+  { pattern: '3x3', input: [B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE, B.REDSTONE, B.REDSTONE, B.QUARTZ, B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE], output: { type: B.OBSERVER, count: 1 } },
+
+  // ===== HOPPER =====
+  { pattern: '3x3', input: [B.IRON_INGOT, null, B.IRON_INGOT, B.IRON_INGOT, B.CHEST, B.IRON_INGOT, null, B.IRON_INGOT, null], output: { type: B.HOPPER, count: 1 } },
+
+  // ===== ANVIL =====
+  { pattern: '3x3', input: [B.IRON_BLOCK, B.IRON_BLOCK, B.IRON_BLOCK, null, B.IRON_INGOT, null, B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT], output: { type: B.ANVIL, count: 1 } },
+
+  // ===== BREWING STAND & CAULDRON =====
+  { pattern: '3x3', input: [null, B.BLAZE_ROD, null, B.COBBLESTONE, B.COBBLESTONE, B.COBBLESTONE, null, null, null], output: { type: B.BREWING_STAND, count: 1 } },
+  { pattern: '3x3', input: [B.IRON_INGOT, null, B.IRON_INGOT, B.IRON_INGOT, null, B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT], output: { type: B.CAULDRON, count: 1 } },
+
+  // ===== ENCHANTING TABLE =====
+  { pattern: '3x3', input: [null, B.BOOK, null, B.DIAMOND, B.OBSIDIAN, B.DIAMOND, B.OBSIDIAN, B.OBSIDIAN, B.OBSIDIAN], output: { type: B.ENCHANTING_TABLE, count: 1 } },
+
+  // ===== JUKEBOX & NOTE BLOCK =====
+  { pattern: '3x3', input: [B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS, B.DIAMOND, B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS], output: { type: B.JUKEBOX, count: 1 } },
+  { pattern: '3x3', input: [B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS, B.REDSTONE, B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS], output: { type: B.NOTE_BLOCK, count: 1 } },
+
+  // ===== GLASS PANE & IRON BARS =====
+  { pattern: '3x3', input: [B.GLASS, B.GLASS, B.GLASS, B.GLASS, B.GLASS, B.GLASS, null, null, null], output: { type: B.GLASS_PANE, count: 16 } },
+  { pattern: '3x3', input: [B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT, B.IRON_INGOT, null, null, null], output: { type: B.IRON_BARS, count: 16 } },
+
+  // ===== COMPASS, CLOCK, MAP =====
+  { pattern: '3x3', input: [null, B.IRON_INGOT, null, B.IRON_INGOT, B.REDSTONE, B.IRON_INGOT, null, B.IRON_INGOT, null], output: { type: B.COMPASS, count: 1 } },
+  { pattern: '3x3', input: [null, B.GOLD_INGOT, null, B.GOLD_INGOT, B.REDSTONE, B.GOLD_INGOT, null, B.GOLD_INGOT, null], output: { type: B.CLOCK, count: 1 } },
+  { pattern: '3x3', input: [B.PAPER, B.PAPER, B.PAPER, B.PAPER, B.COMPASS, B.PAPER, B.PAPER, B.PAPER, B.PAPER], output: { type: B.MAP, count: 1 } },
+
+  // ===== SHEARS =====
+  { pattern: '2x2', input: [null, B.IRON_INGOT, B.IRON_INGOT, null], output: { type: B.SHEARS, count: 1 } },
+  { pattern: '2x2', input: [B.IRON_INGOT, null, null, B.IRON_INGOT], output: { type: B.SHEARS, count: 1 } },
+
+  // ===== LEAD =====
+  { pattern: '3x3', input: [B.STRING, B.STRING, null, B.STRING, B.SLIMEBALL, null, null, null, B.STRING], output: { type: B.LEAD, count: 2 } },
+
+  // ===== SHIELD =====
+  { pattern: '3x3', input: [B.PLANKS, B.IRON_INGOT, B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS, null, B.PLANKS, null], output: { type: B.SHIELD, count: 1 } },
+
+  // ===== SIGN =====
+  { pattern: '3x3', input: [B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS, B.PLANKS, null, B.STICK, null], output: { type: B.OAK_SIGN, count: 3 } },
+
+  // ===== BANNER =====
+  { pattern: '3x3', input: [B.WOOL, B.WOOL, B.WOOL, B.WOOL, B.WOOL, B.WOOL, null, B.STICK, null], output: { type: B.WHITE_BANNER, count: 1 } },
+
+  // ===== ITEM FRAME =====
+  { pattern: '3x3', input: [B.STICK, B.STICK, B.STICK, B.STICK, B.LEATHER, B.STICK, B.STICK, B.STICK, B.STICK], output: { type: B.ITEM_FRAME, count: 1 } },
+  { pattern: '2x2', input: [B.ITEM_FRAME, B.GLOWSTONE, null, null], output: { type: B.GLOW_ITEM_FRAME, count: 1 } },
+
+  // ===== ARMOR STAND =====
+  { pattern: '3x3', input: [B.STICK, B.STICK, B.STICK, null, B.STICK, null, B.STICK, B.COBBLESTONE, B.STICK], output: { type: B.ARMOR_STAND, count: 1 } },
+
+  // ===== FLOWER POT =====
+  { pattern: '3x3', input: [B.BRICK_ITEM, null, B.BRICK_ITEM, null, B.BRICK_ITEM, null, null, null, null], output: { type: B.FLOWER_POT, count: 1 } },
+
+  // ===== CLAY & BRICKS =====
+  { pattern: 'single', input: B.CLAY, output: { type: B.CLAY_BALL, count: 4 } },
+  { pattern: 'single', input: B.CLAY_BALL, output: { type: B.BRICK_ITEM, count: 1 } },
+  { pattern: '2x2', input: [B.BRICK_ITEM, B.BRICK_ITEM, B.BRICK_ITEM, B.BRICK_ITEM], output: { type: B.BRICK, count: 1 } },
+  { pattern: '2x2', input: [B.CLAY_BALL, B.CLAY_BALL, B.CLAY_BALL, B.CLAY_BALL], output: { type: B.TERRACOTTA, count: 1 } },
+
+  // ===== END ITEMS =====
+  { pattern: '3x3', input: [B.GHAST_TEAR, B.EYE_OF_ENDER, B.GHAST_TEAR, B.EYE_OF_ENDER, B.EYE_OF_ENDER, B.EYE_OF_ENDER, B.GLASS, B.GLASS, B.GLASS], output: { type: B.END_CRYSTAL, count: 1 } },
+  { pattern: '2x2', input: [B.BLAZE_ROD, null, B.CHORUS_PLANT, null], output: { type: B.END_ROD, count: 4 } },
+  { pattern: '2x2', input: [B.CHORUS_PLANT, B.CHORUS_PLANT, B.CHORUS_PLANT, B.CHORUS_PLANT], output: { type: B.PURPUR_BLOCK, count: 4 } },
+  { pattern: '3x3', input: [null, B.PURPUR_BLOCK, null, null, B.PURPUR_BLOCK, null, null, null, null], output: { type: B.PURPUR_PILLAR, count: 2 } },
+
+  // ===== SPYGLASS =====
+  { pattern: '3x3', input: [null, B.AMETHYST, null, null, B.COPPER_INGOT, null, null, B.COPPER_INGOT, null], output: { type: B.SPYGLASS, count: 1 } },
+
+  // ===== CANDLE =====
+  { pattern: '2x2', input: [B.STRING, null, B.HONEYCOMB, null], output: { type: B.CANDLE, count: 1 } },
+
+  // ===== COOKIE & CAKE & PUMPKIN PIE =====
+  { pattern: '3x3', input: [null, null, null, B.HAY_BALE, B.COOKIE, B.HAY_BALE, null, null, null], output: { type: B.COOKIE, count: 8 } },
+  { pattern: '3x3', input: [B.PUMPKIN, B.SUGAR_CANE, null, null, null, null, null, null, null], output: { type: B.PUMPKIN_PIE, count: 1 } },
+
+  // ===== MELON SLICE =====
+  { pattern: 'single', input: B.MELON, output: { type: B.MELON_SLICE, count: 9 } },
 ];
 
 function checkCraftingRecipe() {
   const gridSize = craftMode * craftMode;
-  const g = craftGrid.slice(0, gridSize).map(s => s ? s.type : null);
+  const gRaw = craftGrid.slice(0, gridSize).map(s => s ? s.type : null);
+  // Normalize for crafting comparison
+  const g = gRaw.map(t => t !== null ? normalizeForCrafting(t) : null);
   const filledCount = g.filter(t => t !== null).length;
 
   if (filledCount === 0) { craftOutput = null; return; }
@@ -296,7 +809,8 @@ function checkCraftingRecipe() {
   if (filledCount === 1) {
     const inputType = g.find(t => t !== null);
     for (const recipe of CRAFT_RECIPES) {
-      if (recipe.pattern === 'single' && recipe.input === inputType) {
+      const recipeInput = normalizeForCrafting(recipe.input);
+      if (recipe.pattern === 'single' && recipeInput === inputType) {
         craftOutput = { type: recipe.output.type, count: recipe.output.count };
         return;
       }
@@ -309,7 +823,8 @@ function checkCraftingRecipe() {
       if (recipe.pattern === '3x3') {
         let match = true;
         for (let i = 0; i < 9; i++) {
-          if ((recipe.input[i] || null) !== g[i]) { match = false; break; }
+          const recipeSlot = recipe.input[i] ? normalizeForCrafting(recipe.input[i]) : null;
+          if (recipeSlot !== g[i]) { match = false; break; }
         }
         if (match) {
           craftOutput = { type: recipe.output.type, count: recipe.output.count };
@@ -332,7 +847,8 @@ function checkCraftingRecipe() {
                 const inRect = (r >= oy && r < oy + 2 && c >= ox && c < ox + 2);
                 if (inRect) {
                   const ri = (r - oy) * 2 + (c - ox);
-                  if (g[idx] !== recipe.input[ri]) match = false;
+                  const recipeSlot = recipe.input[ri] ? normalizeForCrafting(recipe.input[ri]) : null;
+                  if (g[idx] !== recipeSlot) match = false;
                 } else {
                   if (g[idx] !== null) otherFilled = true;
                 }
@@ -352,8 +868,11 @@ function checkCraftingRecipe() {
   if (craftMode === 2 && filledCount <= 4) {
     for (const recipe of CRAFT_RECIPES) {
       if (recipe.pattern === '2x2') {
-        if (g[0] === recipe.input[0] && g[1] === recipe.input[1] &&
-            g[2] === recipe.input[2] && g[3] === recipe.input[3]) {
+        const r0 = recipe.input[0] ? normalizeForCrafting(recipe.input[0]) : null;
+        const r1 = recipe.input[1] ? normalizeForCrafting(recipe.input[1]) : null;
+        const r2 = recipe.input[2] ? normalizeForCrafting(recipe.input[2]) : null;
+        const r3 = recipe.input[3] ? normalizeForCrafting(recipe.input[3]) : null;
+        if (g[0] === r0 && g[1] === r1 && g[2] === r2 && g[3] === r3) {
           craftOutput = { type: recipe.output.type, count: recipe.output.count };
           return;
         }

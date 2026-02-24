@@ -88,9 +88,16 @@ const ACHIEVEMENTS = {
   },
   diamond_tools: {
     id: 'diamond_tools',
-    name: '최강의 도구',
+    name: '다이아몬드 시대',
     description: '다이아몬드 도구를 제작하세요',
     icon: B.DIAMOND_PICKAXE,
+    category: 'tools'
+  },
+  netherite_tools: {
+    id: 'netherite_tools',
+    name: '최강의 도구',
+    description: '네더라이트 도구를 제작하세요',
+    icon: B.NETHERITE_PICKAXE,
     category: 'tools'
   },
   first_sword: {
@@ -372,6 +379,27 @@ const ACHIEVEMENTS = {
     icon: B.COPPER_ORE,
     category: 'mining'
   },
+  mine_emerald: {
+    id: 'mine_emerald',
+    name: '에메랄드 발견',
+    description: '에메랄드를 채굴하세요',
+    icon: B.EMERALD_ORE,
+    category: 'mining'
+  },
+  mine_lapis: {
+    id: 'mine_lapis',
+    name: '청금석 발견',
+    description: '청금석을 채굴하세요',
+    icon: B.LAPIS_ORE,
+    category: 'mining'
+  },
+  mine_redstone: {
+    id: 'mine_redstone',
+    name: '레드스톤 발견',
+    description: '레드스톤을 채굴하세요',
+    icon: B.REDSTONE_ORE,
+    category: 'mining'
+  },
   mine_100_blocks: {
     id: 'mine_100_blocks',
     name: '광부',
@@ -494,28 +522,67 @@ function unlockAchievement(id) {
 function checkItemAchievements(itemType) {
   switch (itemType) {
     case B.WOOD:
+    case B.OAK_LOG:
+    case B.BIRCH_LOG:
+    case B.SPRUCE_LOG:
+    case B.JUNGLE_LOG:
+    case B.ACACIA_LOG:
+    case B.DARK_OAK_LOG:
+    case B.CRIMSON_STEM:
+    case B.WARPED_STEM:
       unlockAchievement('first_wood');
       break;
     case B.PLANKS:
+    case B.OAK_PLANKS:
+    case B.BIRCH_PLANKS:
+    case B.SPRUCE_PLANKS:
+    case B.JUNGLE_PLANKS:
+    case B.ACACIA_PLANKS:
+    case B.DARK_OAK_PLANKS:
       unlockAchievement('first_planks');
       break;
     case B.COBBLESTONE:
       unlockAchievement('mine_stone');
       break;
     case B.COAL_ORE:
+    case B.DEEPSLATE_COAL_ORE:
+    case B.COAL:
       unlockAchievement('mine_coal');
       break;
     case B.IRON_ORE:
+    case B.DEEPSLATE_IRON_ORE:
+    case B.RAW_IRON:
       unlockAchievement('mine_iron');
       break;
     case B.GOLD_ORE:
+    case B.DEEPSLATE_GOLD_ORE:
+    case B.RAW_GOLD:
       unlockAchievement('mine_gold');
       break;
     case B.DIAMOND_ORE:
+    case B.DEEPSLATE_DIAMOND_ORE:
+    case B.DIAMOND:
       unlockAchievement('mine_diamond');
       break;
     case B.COPPER_ORE:
+    case B.DEEPSLATE_COPPER_ORE:
+    case B.RAW_COPPER:
       unlockAchievement('mine_copper');
+      break;
+    case B.EMERALD_ORE:
+    case B.DEEPSLATE_EMERALD_ORE:
+    case B.EMERALD:
+      unlockAchievement('mine_emerald');
+      break;
+    case B.LAPIS_ORE:
+    case B.DEEPSLATE_LAPIS_ORE:
+    case B.LAPIS:
+      unlockAchievement('mine_lapis');
+      break;
+    case B.REDSTONE_ORE:
+    case B.DEEPSLATE_REDSTONE_ORE:
+    case B.REDSTONE:
+      unlockAchievement('mine_redstone');
       break;
     case B.OBSIDIAN:
       unlockAchievement('mine_obsidian');
@@ -539,6 +606,12 @@ function checkItemAchievements(itemType) {
 function checkCraftAchievements(itemType) {
   switch (itemType) {
     case B.PLANKS:
+    case B.OAK_PLANKS:
+    case B.BIRCH_PLANKS:
+    case B.SPRUCE_PLANKS:
+    case B.JUNGLE_PLANKS:
+    case B.ACACIA_PLANKS:
+    case B.DARK_OAK_PLANKS:
       unlockAchievement('first_planks');
       break;
     case B.CRAFT_TABLE:
@@ -566,6 +639,12 @@ function checkCraftAchievements(itemType) {
     case B.DIAMOND_SHOVEL:
     case B.DIAMOND_SWORD:
       unlockAchievement('diamond_tools');
+      break;
+    case B.NETHERITE_PICKAXE:
+    case B.NETHERITE_AXE:
+    case B.NETHERITE_SHOVEL:
+    case B.NETHERITE_SWORD:
+      unlockAchievement('netherite_tools');
       break;
     case B.WOOD_SWORD:
     case B.STONE_SWORD:

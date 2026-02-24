@@ -56,3 +56,8 @@ const NETHER_MOB_TYPE = { ZOMBIE_PIGMAN: 0, GHAST: 1, BLAZE: 2 };
 
 // End mob types
 const END_MOB_TYPE = { ENDERMAN: 0, ENDER_DRAGON: 1 };
+
+// Ocean constants
+const SEA_LEVEL = 45;  // Water surface level (below normal surface ~50)
+const OCEAN_DEPTH = 25; // How deep oceans can be
+const BEACH_WIDTH = 5;  // Sand transition zone at ocean edges

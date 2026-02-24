@@ -70,9 +70,53 @@ function posHash2(x, y, offset) {
   return ((h & 0x7fffffff) / 0x7fffffff);
 }
 
+// --- Biome determination (deterministic per X) ---
+function getBiome(x) {
+  // Use large-scale noise for biome selection
+  const biomeNoise = noise(x * 0.003, 2, 0.5);
+  const tempNoise = noise(x * 0.002 + 5000, 2, 0.5);
+
+  if (biomeNoise < 0.3) {
+    // Ocean biomes
+    if (tempNoise < 0.3) return 'frozen_ocean';
+    return 'ocean';
+  } else if (biomeNoise < 0.38) {
+    // Beach transition
+    return 'beach';
+  } else if (biomeNoise > 0.85) {
+    // Desert
+    return 'desert';
+  } else if (tempNoise < 0.25) {
+    // Cold biomes
+    return 'snowy';
+  } else if (tempNoise > 0.75) {
+    // Jungle
+    return 'jungle';
+  }
+  return 'plains';
+}
+
 // --- Deterministic surface height (works for any X) ---
 function getSurfaceHeight(x) {
-  return Math.floor(noise(x * 0.02, 4, 0.5) * 20 + SURFACE_Y);
+  const biome = getBiome(x);
+  const baseNoise = noise(x * 0.02, 4, 0.5);
+
+  if (biome === 'ocean' || biome === 'frozen_ocean') {
+    // Ocean floor - below sea level
+    return Math.floor(SEA_LEVEL + 5 + baseNoise * OCEAN_DEPTH);
+  } else if (biome === 'beach') {
+    // Beach - near sea level
+    return Math.floor(SEA_LEVEL - 2 + baseNoise * 5);
+  } else if (biome === 'desert') {
+    // Desert - slightly hilly
+    return Math.floor(noise(x * 0.015, 3, 0.5) * 15 + SURFACE_Y);
+  } else if (biome === 'jungle') {
+    // Jungle - more varied terrain
+    return Math.floor(baseNoise * 25 + SURFACE_Y - 3);
+  }
+
+  // Default plains/forest terrain
+  return Math.floor(baseNoise * 20 + SURFACE_Y);
 }
 
 // --- Block access (chunk-aware) ---
@@ -121,74 +165,133 @@ function generateChunkTerrain(cx) {
 
   for (let lx = 0; lx < CHUNK_SIZE; lx++) {
     const x = startX + lx;
+    const biome = getBiome(x);
     const surfaceH = getSurfaceHeight(x);
 
     for (let y = 0; y < WORLD_HEIGHT; y++) {
-      if (y < surfaceH) continue; // AIR (0)
+      // Bedrock at bottom
       if (y === WORLD_HEIGHT - 1) {
         chunk[y * CHUNK_SIZE + lx] = B.BEDROCK;
-      } else if (y === surfaceH) {
-        chunk[y * CHUNK_SIZE + lx] = B.GRASS;
+        continue;
+      }
+
+      // Water fill for ocean and beach biomes
+      if ((biome === 'ocean' || biome === 'frozen_ocean' || biome === 'beach') && y >= surfaceH && y < SEA_LEVEL) {
+        if (biome === 'frozen_ocean' && y === surfaceH) {
+          // Ice on surface of frozen ocean
+          chunk[y * CHUNK_SIZE + lx] = B.ICE;
+        } else {
+          chunk[y * CHUNK_SIZE + lx] = B.WATER;
+        }
+        continue;
+      }
+
+      if (y < surfaceH) continue; // AIR (0)
+
+      // Surface layer based on biome
+      if (y === surfaceH) {
+        if (biome === 'ocean' || biome === 'frozen_ocean') {
+          // Ocean floor - sand, gravel, clay
+          const floorType = posHash2(x, y, 700);
+          if (floorType < 0.5) chunk[y * CHUNK_SIZE + lx] = B.SAND;
+          else if (floorType < 0.7) chunk[y * CHUNK_SIZE + lx] = B.GRAVEL;
+          else if (floorType < 0.85) chunk[y * CHUNK_SIZE + lx] = B.CLAY;
+          else chunk[y * CHUNK_SIZE + lx] = B.DIRT;
+        } else if (biome === 'beach') {
+          chunk[y * CHUNK_SIZE + lx] = B.SAND;
+        } else if (biome === 'desert') {
+          chunk[y * CHUNK_SIZE + lx] = B.SAND;
+        } else if (biome === 'snowy') {
+          chunk[y * CHUNK_SIZE + lx] = B.SNOW;
+        } else if (biome === 'jungle') {
+          chunk[y * CHUNK_SIZE + lx] = B.GRASS;
+        } else {
+          chunk[y * CHUNK_SIZE + lx] = B.GRASS;
+        }
       } else if (y < surfaceH + 4) {
-        chunk[y * CHUNK_SIZE + lx] = B.DIRT;
+        // Subsurface layer
+        if (biome === 'desert' || biome === 'beach') {
+          if (y < surfaceH + 3) chunk[y * CHUNK_SIZE + lx] = B.SAND;
+          else chunk[y * CHUNK_SIZE + lx] = B.SANDSTONE;
+        } else if (biome === 'ocean' || biome === 'frozen_ocean') {
+          chunk[y * CHUNK_SIZE + lx] = B.SAND;
+        } else {
+          chunk[y * CHUNK_SIZE + lx] = B.DIRT;
+        }
       } else {
+        // Stone layer with ores
         chunk[y * CHUNK_SIZE + lx] = B.STONE;
-        // Ores (deterministic per position, each ore has its own hash)
         const depth = y - surfaceH;
-        // Diamond (deepest, rarest) - depth 40+
-        if (depth > 40 && posHash2(x, y, 5) < 0.008) {
-          chunk[y * CHUNK_SIZE + lx] = B.DIAMOND_ORE;
-        }
-        // Gold - depth 25+
-        else if (depth > 25 && posHash2(x, y, 4) < 0.012) {
-          chunk[y * CHUNK_SIZE + lx] = B.GOLD_ORE;
-        }
-        // Iron - depth 10+
-        else if (depth > 10 && posHash2(x, y, 3) < 0.025) {
-          chunk[y * CHUNK_SIZE + lx] = B.IRON_ORE;
-        }
-        // Copper - depth 6+
-        else if (depth > 6 && posHash2(x, y, 2) < 0.025) {
-          chunk[y * CHUNK_SIZE + lx] = B.COPPER_ORE;
-        }
-        // Coal - depth 4+
-        else if (depth > 4 && posHash2(x, y, 1) < 0.035) {
-          chunk[y * CHUNK_SIZE + lx] = B.COAL_ORE;
-        }
-        // Gravel - depth 5+
-        else if (depth > 5 && posHash2(x, y, 6) < 0.02) {
-          chunk[y * CHUNK_SIZE + lx] = B.GRAVEL;
+
+        // Deepslate below y=80
+        if (y > 80) {
+          chunk[y * CHUNK_SIZE + lx] = B.DEEPSLATE;
+          // Deepslate ores
+          if (depth > 40 && posHash2(x, y, 5) < 0.008) {
+            chunk[y * CHUNK_SIZE + lx] = B.DEEPSLATE_DIAMOND_ORE;
+          } else if (depth > 25 && posHash2(x, y, 4) < 0.012) {
+            chunk[y * CHUNK_SIZE + lx] = B.DEEPSLATE_GOLD_ORE;
+          } else if (depth > 10 && posHash2(x, y, 3) < 0.025) {
+            chunk[y * CHUNK_SIZE + lx] = B.DEEPSLATE_IRON_ORE;
+          } else if (depth > 6 && posHash2(x, y, 2) < 0.025) {
+            chunk[y * CHUNK_SIZE + lx] = B.DEEPSLATE_COPPER_ORE;
+          } else if (depth > 4 && posHash2(x, y, 1) < 0.035) {
+            chunk[y * CHUNK_SIZE + lx] = B.DEEPSLATE_COAL_ORE;
+          } else if (depth > 20 && posHash2(x, y, 10) < 0.006) {
+            chunk[y * CHUNK_SIZE + lx] = B.DEEPSLATE_EMERALD_ORE;
+          } else if (depth > 15 && posHash2(x, y, 11) < 0.015) {
+            chunk[y * CHUNK_SIZE + lx] = B.DEEPSLATE_LAPIS_ORE;
+          } else if (depth > 8 && posHash2(x, y, 12) < 0.02) {
+            chunk[y * CHUNK_SIZE + lx] = B.DEEPSLATE_REDSTONE_ORE;
+          }
+        } else {
+          // Regular stone ores
+          if (depth > 40 && posHash2(x, y, 5) < 0.008) {
+            chunk[y * CHUNK_SIZE + lx] = B.DIAMOND_ORE;
+          } else if (depth > 25 && posHash2(x, y, 4) < 0.012) {
+            chunk[y * CHUNK_SIZE + lx] = B.GOLD_ORE;
+          } else if (depth > 10 && posHash2(x, y, 3) < 0.025) {
+            chunk[y * CHUNK_SIZE + lx] = B.IRON_ORE;
+          } else if (depth > 6 && posHash2(x, y, 2) < 0.025) {
+            chunk[y * CHUNK_SIZE + lx] = B.COPPER_ORE;
+          } else if (depth > 4 && posHash2(x, y, 1) < 0.035) {
+            chunk[y * CHUNK_SIZE + lx] = B.COAL_ORE;
+          } else if (depth > 5 && posHash2(x, y, 6) < 0.02) {
+            chunk[y * CHUNK_SIZE + lx] = B.GRAVEL;
+          } else if (depth > 20 && posHash2(x, y, 10) < 0.004) {
+            chunk[y * CHUNK_SIZE + lx] = B.EMERALD_ORE;
+          } else if (depth > 15 && posHash2(x, y, 11) < 0.012) {
+            chunk[y * CHUNK_SIZE + lx] = B.LAPIS_ORE;
+          } else if (depth > 8 && posHash2(x, y, 12) < 0.018) {
+            chunk[y * CHUNK_SIZE + lx] = B.REDSTONE_ORE;
+          }
+          // Stone variants (andesite, diorite, granite)
+          else if (posHash2(x, y, 20) < 0.05) {
+            const variant = posHash2(x, y, 21);
+            if (variant < 0.33) chunk[y * CHUNK_SIZE + lx] = B.ANDESITE;
+            else if (variant < 0.66) chunk[y * CHUNK_SIZE + lx] = B.DIORITE;
+            else chunk[y * CHUNK_SIZE + lx] = B.GRANITE;
+          }
         }
       }
     }
 
     // Cave generation using multiple noise layers
     for (let y = surfaceH + 8; y < WORLD_HEIGHT - 5; y++) {
-      // Large cave system
       const cave1 = caveNoise(x * 0.03, y * 0.03, 3, 0.5);
-      // Medium tunnels
       const cave2 = caveNoise(x * 0.06 + 500, y * 0.06 + 500, 2, 0.5);
-      // Small caves
       const cave3 = caveNoise(x * 0.1 + 1000, y * 0.08 + 1000, 2, 0.6);
 
-      // Combine cave layers
       const depth = y - surfaceH;
-      const depthFactor = Math.min(1, depth / 30); // Caves get larger deeper
+      const depthFactor = Math.min(1, depth / 30);
 
-      // Large caves (threshold ~0.55-0.65)
       if (cave1 > 0.58 && cave1 < 0.68) {
         chunk[y * CHUNK_SIZE + lx] = B.AIR;
-      }
-      // Medium tunnels (threshold ~0.6-0.72)
-      else if (cave2 > 0.62 && cave2 < 0.72 && depthFactor > 0.3) {
+      } else if (cave2 > 0.62 && cave2 < 0.72 && depthFactor > 0.3) {
+        chunk[y * CHUNK_SIZE + lx] = B.AIR;
+      } else if (cave3 > 0.67 && cave3 < 0.77 && depthFactor > 0.5) {
         chunk[y * CHUNK_SIZE + lx] = B.AIR;
       }
-      // Small caves (threshold ~0.65-0.75)
-      else if (cave3 > 0.67 && cave3 < 0.77 && depthFactor > 0.5) {
-        chunk[y * CHUNK_SIZE + lx] = B.AIR;
-      }
-
-      // Very deep large caverns
       if (depth > 50 && cave1 > 0.52 && cave1 < 0.72) {
         chunk[y * CHUNK_SIZE + lx] = B.AIR;
       }
@@ -217,26 +320,114 @@ function decorateChunk(cx) {
   const startX = cx * CHUNK_SIZE;
   const endX = startX + CHUNK_SIZE;
 
+  // Biome-specific decorations
+  for (let x = startX; x < endX; x++) {
+    const biome = getBiome(x);
+    const sy = getSurfaceHeight(x);
+
+    // Ocean decorations - kelp, seagrass, coral
+    if (biome === 'ocean' || biome === 'frozen_ocean') {
+      // Kelp
+      if (posHash(x, 750) < 0.08) {
+        const kelpHeight = 2 + Math.floor(posHash(x, 751) * 5);
+        for (let ky = 1; ky <= kelpHeight && sy - ky > 0; ky++) {
+          if (getBlock(x, sy - ky) === B.WATER) {
+            setBlock(x, sy - ky, B.KELP);
+          }
+        }
+      }
+      // Seagrass
+      else if (posHash(x, 752) < 0.15) {
+        if (getBlock(x, sy - 1) === B.WATER) {
+          setBlock(x, sy - 1, B.SEAGRASS);
+        }
+      }
+      // Coral (only in warm ocean, not frozen)
+      if (biome === 'ocean' && posHash(x, 753) < 0.03) {
+        const coralType = posHash(x, 754);
+        let coral = B.CORAL_BLUE;
+        if (coralType < 0.33) coral = B.CORAL_PINK;
+        else if (coralType < 0.66) coral = B.CORAL_PURPLE;
+        if (getBlock(x, sy - 1) === B.WATER) {
+          setBlock(x, sy - 1, coral);
+        }
+      }
+      continue; // Skip tree generation for ocean
+    }
+
+    // Desert decorations - cactus, dead bush
+    if (biome === 'desert') {
+      if (posHash(x, 760) < 0.03) {
+        // Cactus
+        const cactusH = 1 + Math.floor(posHash(x, 761) * 3);
+        for (let cy = 1; cy <= cactusH; cy++) {
+          setBlock(x, sy - cy, B.CACTUS);
+        }
+      } else if (posHash(x, 762) < 0.05) {
+        // Dead bush
+        setBlock(x, sy - 1, B.DEAD_BUSH);
+      }
+      continue;
+    }
+
+    // Beach decorations - sugar cane near water
+    if (biome === 'beach') {
+      if (posHash(x, 770) < 0.02) {
+        const caneH = 1 + Math.floor(posHash(x, 771) * 3);
+        for (let cy = 1; cy <= caneH; cy++) {
+          setBlock(x, sy - cy, B.SUGAR_CANE);
+        }
+      }
+      continue;
+    }
+  }
+
   // Trees: check this chunk plus neighbors for trees whose leaves extend here
   for (let scanCx = cx - 1; scanCx <= cx + 1; scanCx++) {
     const scanStart = scanCx * CHUNK_SIZE;
     for (let x = scanStart; x < scanStart + CHUNK_SIZE; x++) {
-      if (posHash(x, 100) >= 0.06) continue; // not a tree position
-      // Skip trees too close together (check previous positions)
+      const biome = getBiome(x);
+
+      // Skip trees in ocean, desert, beach
+      if (biome === 'ocean' || biome === 'frozen_ocean' || biome === 'desert' || biome === 'beach') continue;
+
+      // Tree density varies by biome
+      let treeDensity = 0.06;
+      if (biome === 'jungle') treeDensity = 0.12;
+      else if (biome === 'snowy') treeDensity = 0.04;
+
+      if (posHash(x, 100) >= treeDensity) continue;
+
+      // Skip trees too close together
       let tooClose = false;
       for (let px = x - 4; px < x; px++) {
-        if (posHash(px, 100) < 0.06) { tooClose = true; break; }
+        if (posHash(px, 100) < treeDensity) { tooClose = true; break; }
       }
       if (tooClose) continue;
 
       const sy = getSurfaceHeight(x);
       const treeH = 4 + Math.floor(posHash(x, 101) * 3);
 
+      // Tree type based on biome
+      let logType = B.OAK_LOG;
+      let leafType = B.OAK_LEAVES;
+
+      if (biome === 'snowy') {
+        logType = B.SPRUCE_LOG;
+        leafType = B.SPRUCE_LEAVES;
+      } else if (biome === 'jungle') {
+        logType = B.JUNGLE_LOG;
+        leafType = B.JUNGLE_LEAVES;
+      } else if (posHash(x, 102) < 0.3) {
+        logType = B.BIRCH_LOG;
+        leafType = B.BIRCH_LEAVES;
+      }
+
       // Only place blocks that fall within THIS chunk
       // Trunk
       for (let ty = 1; ty <= treeH; ty++) {
         if (x >= startX && x < endX) {
-          setBlock(x, sy - ty, B.WOOD);
+          setBlock(x, sy - ty, logType);
         }
       }
       // Leaves
@@ -247,7 +438,7 @@ function decorateChunk(cx) {
           const by = sy - treeH + ly;
           if (bx >= startX && bx < endX && by >= 0) {
             if (getBlock(bx, by) === B.AIR) {
-              setBlock(bx, by, B.LEAVES);
+              setBlock(bx, by, leafType);
             }
           }
         }
@@ -258,30 +449,31 @@ function decorateChunk(cx) {
         const by = sy - treeH - 1;
         if (bx >= startX && bx < endX && by >= 0) {
           if (getBlock(bx, by) === B.AIR) {
-            setBlock(bx, by, B.LEAVES);
+            setBlock(bx, by, leafType);
           }
         }
       }
     }
   }
 
-  // Water pools
+  // Grass and flowers on plains (skip pools for now, water is in oceans)
   for (let x = startX; x < endX; x++) {
-    if (posHash(x, 200) >= 0.01) continue;
-    const sy = getSurfaceHeight(x);
-    const poolW = 3 + Math.floor(posHash(x, 201) * 4);
-    for (let px = 0; px < poolW; px++) {
-      const bx = x + px;
-      if (bx >= startX && bx < endX) {
-        setBlock(bx, sy, B.WATER);
-        if (getBlock(bx, sy + 1) === B.GRASS) setBlock(bx, sy + 1, B.SAND);
-        if (posHash(bx, 202) < 0.5) setBlock(bx, sy - 1, B.WATER);
+    const biome = getBiome(x);
+    if (biome === 'plains' || biome === 'jungle') {
+      const sy = getSurfaceHeight(x);
+      if (posHash(x, 800) < 0.15 && getBlock(x, sy - 1) === B.AIR) {
+        setBlock(x, sy - 1, B.TALL_GRASS);
+      } else if (posHash(x, 801) < 0.03 && getBlock(x, sy - 1) === B.AIR) {
+        setBlock(x, sy - 1, B.FERN);
       }
     }
   }
 
-  // Village generation for this chunk
-  generateVillageForChunk(cx);
+  // Village generation for this chunk (only in plains biome)
+  const chunkBiome = getBiome(startX + CHUNK_SIZE / 2);
+  if (chunkBiome === 'plains') {
+    generateVillageForChunk(cx);
+  }
 }
 
 // --- Chunk loading/unloading ---

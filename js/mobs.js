@@ -100,15 +100,21 @@ function spawnMobs(dt) {
   }
 
   if (spawnBY <= 0) {
-    // Surface spawn: find first solid from top
+    // Surface spawn: find first solid from top (skip water)
     for (let y = 0; y < WORLD_HEIGHT; y++) {
+      const block = getBlock(spawnBX, y);
+      if (block === B.WATER || block === B.LAVA) continue; // Skip liquids
       if (isSolid(spawnBX, y)) { spawnBY = y - 2; break; }
     }
   }
   if (spawnBY <= 0) return;
 
-  // Check space is clear
+  // Check space is clear (no solid blocks or water)
+  const blockAtSpawn = getBlock(spawnBX, spawnBY);
+  const blockAbove = getBlock(spawnBX, spawnBY + 1);
   if (isSolid(spawnBX, spawnBY) || isSolid(spawnBX, spawnBY + 1)) return;
+  if (blockAtSpawn === B.WATER || blockAbove === B.WATER) return;
+  if (blockAtSpawn === B.LAVA || blockAbove === B.LAVA) return;
 
   // Random mob type
   const roll = Math.random();
