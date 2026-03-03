@@ -122,7 +122,6 @@ function deserializeChunks(chunksData) {
 
 // Load a saved world
 function loadWorld(worldName) {
-  console.log('loadWorld called for:', worldName);
   try {
     const saveKey = 'minecraft2d_world_' + worldName.replace(/[^a-zA-Z0-9]/g, '_');
     const savedData = localStorage.getItem(saveKey);
@@ -206,7 +205,6 @@ function loadWorld(worldName) {
 
     // Set as host for single player (enables mob/animal spawning)
     isHost = true;
-    console.log('isHost set to true in loadWorld');
     isMultiplayer = false;
 
     // Generate any missing chunks around player
@@ -264,6 +262,10 @@ function deleteWorld(worldName) {
 function createNewWorld(worldName) {
   if (!worldName) worldName = 'World ' + (savedWorlds.length + 1);
   currentWorldName = worldName;
+
+  // Set as host for single player (enables mob/animal spawning)
+  isHost = true;
+  isMultiplayer = false;
 
   // Generate random seed
   const seed = Math.floor(Math.random() * 1000000);
