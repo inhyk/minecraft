@@ -414,6 +414,16 @@ const CRAFT_RECIPES = [
   { pattern: 'single', input: B.REDSTONE_ORE, output: { type: B.REDSTONE, count: 4 } },
   { pattern: 'single', input: B.NETHER_QUARTZ_ORE, output: { type: B.QUARTZ, count: 1 } },
 
+
+  // Deepslate ore smelting (same output as regular ores)
+  { pattern: 'single', input: B.DEEPSLATE_COAL_ORE, output: { type: B.COAL, count: 1 } },
+  { pattern: 'single', input: B.DEEPSLATE_IRON_ORE, output: { type: B.IRON_INGOT, count: 1 } },
+  { pattern: 'single', input: B.DEEPSLATE_GOLD_ORE, output: { type: B.GOLD_INGOT, count: 1 } },
+  { pattern: 'single', input: B.DEEPSLATE_COPPER_ORE, output: { type: B.COPPER_INGOT, count: 1 } },
+  { pattern: 'single', input: B.DEEPSLATE_DIAMOND_ORE, output: { type: B.DIAMOND, count: 1 } },
+  { pattern: 'single', input: B.DEEPSLATE_EMERALD_ORE, output: { type: B.EMERALD, count: 1 } },
+  { pattern: 'single', input: B.DEEPSLATE_LAPIS_ORE, output: { type: B.LAPIS, count: 4 } },
+  { pattern: 'single', input: B.DEEPSLATE_REDSTONE_ORE, output: { type: B.REDSTONE, count: 4 } },
   // Cooking food
   { pattern: 'single', input: B.RAW_PORK, output: { type: B.COOKED_PORK, count: 1 } },
   { pattern: 'single', input: B.RAW_BEEF, output: { type: B.COOKED_BEEF, count: 1 } },
