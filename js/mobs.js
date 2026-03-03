@@ -71,6 +71,7 @@ function spawnMobs(dt) {
   mobSpawnTimer += dt;
   if (mobSpawnTimer < MOB_SPAWN_INTERVAL) return;
   mobSpawnTimer = 0;
+  console.log("Attempting mob spawn, current mobs:", mobs.length, "max:", MAX_MOBS);
   if (mobs.length >= MAX_MOBS) return;
 
   // Spawn 15-40 blocks away from player horizontally
@@ -107,7 +108,8 @@ function spawnMobs(dt) {
       if (isSolid(spawnBX, y)) { spawnBY = y - 2; break; }
     }
   }
-  if (spawnBY <= 0) return;
+  console.log('Spawn check: spawnBX=', spawnBX, 'spawnBY=', spawnBY, 'WORLD_WIDTH=', WORLD_WIDTH);
+  if (spawnBY <= 0) { console.log('Spawn failed: spawnBY <= 0'); return; }
 
   // Check space is clear (no solid blocks or water)
   const blockAtSpawn = getBlock(spawnBX, spawnBY);
@@ -123,6 +125,7 @@ function spawnMobs(dt) {
   else if (roll < 0.75) type = MOB_TYPE.CREEPER;
   else type = MOB_TYPE.SKELETON;
 
+  console.log("Spawning mob at", spawnBX, spawnBY, "type:", type);
   mobs.push(createMob(type, spawnBX * BLOCK_SIZE, spawnBY * BLOCK_SIZE));
 }
 
