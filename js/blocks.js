@@ -182,6 +182,8 @@ const B = {
   MUSIC_DISC_FAR: 456, MUSIC_DISC_MALL: 457, MUSIC_DISC_MELLOHI: 458, MUSIC_DISC_STAL: 459,
   MUSIC_DISC_STRAD: 460, MUSIC_DISC_WARD: 461, MUSIC_DISC_11: 462, MUSIC_DISC_WAIT: 463,
   MUSIC_DISC_PIGSTEP: 464, MUSIC_DISC_OTHERSIDE: 465,
+  // Fire
+  FIRE: 466,
 };
 
 // Tier colors for tool rendering
@@ -713,6 +715,7 @@ const BLOCK_INFO = {
   [B.MUSIC_DISC_WAIT]:    { name: "Disc Wait",       solid: false, placeable: false, maxStack: 1 },
   [B.MUSIC_DISC_PIGSTEP]: { name: "Disc Pigstep",    solid: false, placeable: false, maxStack: 1 },
   [B.MUSIC_DISC_OTHERSIDE]: { name: "Disc Otherside", solid: false, placeable: false, maxStack: 1 },
+  [B.FIRE]: { name: "Fire", solid: false, placeable: false, transparent: true, light: 15 },
 };
 
 // Helper: max stack size for a type
@@ -1332,6 +1335,22 @@ function drawBlock(x, y, type, size) {
       ctx.fillStyle = '#ff8020';
       ctx.fillRect(x + s*0.2, y + s*0.2, s*0.2, s*0.15);
       ctx.fillRect(x + s*0.55, y + s*0.6, s*0.25, s*0.2);
+      break;
+    case B.FIRE:
+      // Animated fire effect
+      const fireTime = Date.now() / 100;
+      ctx.fillStyle = '#ff6600';
+      for (let fi = 0; fi < 4; fi++) {
+        const fh = s * (0.4 + 0.3 * Math.sin(fireTime + fi));
+        const fx = x + s * (0.1 + fi * 0.2);
+        ctx.fillRect(fx, y + s - fh, s * 0.15, fh);
+      }
+      ctx.fillStyle = '#ffcc00';
+      for (let fj = 0; fj < 3; fj++) {
+        const fh2 = s * (0.2 + 0.2 * Math.sin(fireTime + fj + 1));
+        const fx2 = x + s * (0.2 + fj * 0.25);
+        ctx.fillRect(fx2, y + s - fh2, s * 0.1, fh2);
+      }
       break;
     // === END BLOCKS ===
     case B.END_STONE:
