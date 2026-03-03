@@ -532,6 +532,9 @@ function generateRuinedPortal(x) {
   // Loot nearby
   if (posHash(x, 970) < 0.5) setBlock(x - 1, baseY, B.NETHERRACK);
   if (posHash(x, 971) < 0.3) setBlock(x + 4, baseY, B.GOLD_BLOCK);
+
+  // Chest with loot (always spawn)
+  setBlock(x - 1, baseY - 1, B.CHEST);
 }
 
 // --- Chunk loading/unloading ---
