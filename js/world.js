@@ -474,6 +474,64 @@ function decorateChunk(cx) {
   if (chunkBiome === 'plains') {
     generateVillageForChunk(cx);
   }
+
+  // Ruined portal generation (rare, ~1% chance per chunk)
+  if (posHash(cx, 900) < 0.01) {
+    generateRuinedPortal(startX + Math.floor(posHash(cx, 901) * CHUNK_SIZE));
+  }
+}
+
+// Generate a ruined portal structure
+function generateRuinedPortal(x) {
+  const sy = getSurfaceHeight(x);
+  if (sy <= 5) return;
+
+  const baseY = sy;
+  const portalHeight = 4 + Math.floor(posHash(x, 910) * 2);
+  const ruinLevel = 0.3 + posHash(x, 911) * 0.4;
+
+  // Netherrack base
+  for (let dx = -1; dx <= 4; dx++) {
+    if (posHash(x + dx, 920) < 0.6) {
+      setBlock(x + dx, baseY, B.NETHERRACK);
+    }
+  }
+
+  // Left pillar
+  for (let dy = 0; dy < portalHeight; dy++) {
+    if (posHash(x, 930 + dy) < ruinLevel) {
+      const block = posHash(x, 940 + dy) < 0.3 ? B.CRYING_OBSIDIAN : B.OBSIDIAN;
+      setBlock(x, baseY - 1 - dy, block);
+    }
+  }
+
+  // Right pillar
+  for (let dy = 0; dy < portalHeight; dy++) {
+    if (posHash(x + 3, 930 + dy) < ruinLevel) {
+      const block = posHash(x + 3, 940 + dy) < 0.3 ? B.CRYING_OBSIDIAN : B.OBSIDIAN;
+      setBlock(x + 3, baseY - 1 - dy, block);
+    }
+  }
+
+  // Bottom
+  for (let dx = 1; dx <= 2; dx++) {
+    if (posHash(x + dx, 950) < ruinLevel) {
+      const block = posHash(x + dx, 951) < 0.3 ? B.CRYING_OBSIDIAN : B.OBSIDIAN;
+      setBlock(x + dx, baseY, block);
+    }
+  }
+
+  // Top (often more damaged)
+  for (let dx = 1; dx <= 2; dx++) {
+    if (posHash(x + dx, 960) < ruinLevel * 0.5) {
+      const block = posHash(x + dx, 961) < 0.3 ? B.CRYING_OBSIDIAN : B.OBSIDIAN;
+      setBlock(x + dx, baseY - portalHeight, block);
+    }
+  }
+
+  // Loot nearby
+  if (posHash(x, 970) < 0.5) setBlock(x - 1, baseY, B.NETHERRACK);
+  if (posHash(x, 971) < 0.3) setBlock(x + 4, baseY, B.GOLD_BLOCK);
 }
 
 // --- Chunk loading/unloading ---

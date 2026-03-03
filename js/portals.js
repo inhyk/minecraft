@@ -267,7 +267,27 @@ function useFlintAndSteel(bx, by) {
     return true;
   }
 
-  // Otherwise just create fire (not implemented, just damage tool)
+  // Place fire on top of the block
+  const fireY = by - 1;
+  if (fireY >= 0 && getBlock(bx, fireY) === B.AIR) {
+    setBlock(bx, fireY, B.FIRE);
+    if (isMultiplayer) {
+      netSendBlock(bx, fireY, B.FIRE);
+    }
+    damageHeldTool();
+    return true;
+  }
+
+  // If clicked on air, place fire there
+  if (getBlock(bx, by) === B.AIR) {
+    setBlock(bx, by, B.FIRE);
+    if (isMultiplayer) {
+      netSendBlock(bx, by, B.FIRE);
+    }
+    damageHeldTool();
+    return true;
+  }
+
   damageHeldTool();
   return false;
 }
