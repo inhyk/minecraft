@@ -535,6 +535,41 @@ function generateRuinedPortal(x) {
 
   // Chest with loot (always spawn)
   setBlock(x - 1, baseY - 1, B.CHEST);
+
+  // Spawn loot items on the ground near the chest
+  const lootX = (x - 1) * BLOCK_SIZE + BLOCK_SIZE / 2;
+  const lootY = (baseY - 2) * BLOCK_SIZE;
+
+  // Random loot table for ruined portals
+  const lootTable = [
+    { type: B.GOLD_INGOT, count: 1 + Math.floor(posHash(x, 980) * 3), chance: 0.7 },
+    { type: B.GOLD_NUGGET, count: 2 + Math.floor(posHash(x, 981) * 6), chance: 0.8 },
+    { type: B.OBSIDIAN, count: 1 + Math.floor(posHash(x, 982) * 3), chance: 0.6 },
+    { type: B.FLINT_AND_STEEL, count: 1, chance: 0.4 },
+    { type: B.IRON_INGOT, count: 1 + Math.floor(posHash(x, 983) * 2), chance: 0.5 },
+    { type: B.ENDER_PEARL, count: 1, chance: 0.2 },
+    { type: B.GOLDEN_APPLE, count: 1, chance: 0.15 },
+    { type: B.DIAMOND, count: 1, chance: 0.1 },
+  ];
+
+  for (const loot of lootTable) {
+    if (posHash(x, 990 + loot.type) < loot.chance) {
+      const item = {
+        x: lootX + (posHash(x, 991 + loot.type) - 0.5) * 20,
+        y: lootY,
+        vx: 0,
+        vy: 0,
+        type: loot.type,
+        count: loot.count,
+        w: 16,
+        h: 16,
+        onGround: true,
+        pickupDelay: 0,
+        life: 9999999 // Very long life for world-generated loot
+      };
+      droppedItems.push(item);
+    }
+  }
 }
 
 // --- Chunk loading/unloading ---
