@@ -8,15 +8,15 @@
 
 ## 명령어
 
-- **서버 시작**: `npm start` 또는 `node server.js`
+- **로컬 서버 시작**: `python3 -m http.server 3000`
 - **게임 접속**: 서버 시작 후 브라우저에서 `http://localhost:3000` 열기
 
 ## 아키텍처
 
-### 서버 (`server.js`)
-- HTTP 서버가 정적 파일 제공
-- WebSocket 서버(`ws` 라이브러리)가 멀티플레이어 처리
-- 서버에서 게임 상태 관리: 월드 시드, 블록 변경, 플레이어, 몹 상태
+### 온라인 2인 플레이
+- 정적 웹페이지에서 PeerJS/WebRTC로 두 브라우저를 직접 연결
+- 호스트가 만든 6자리 방 코드로 친구가 입장
+- 호스트 포함 최대 2명이며 월드 시드, 블록, 플레이어, 몹 상태를 동기화
 - 호스트 플레이어(첫 번째 접속자)가 몹 시뮬레이션을 실행하고 다른 플레이어에게 동기화
 - 메시지 타입: `join`, `move`, `block_set`, `mob_state`, `chat`
 
@@ -37,7 +37,7 @@
 | `js/clouds.js` | 구름 생성 및 렌더링 |
 | `js/mobs.js` | 몹 AI 및 전투 (좀비, 크리퍼, 스켈레톤) |
 | `js/inventory.js` | 36칸 인벤토리, 2x2 크래프팅 |
-| `js/multiplayer.js` | WebSocket 연결, 위치/블록/몹 동기화 |
+| `js/multiplayer.js` | PeerJS 연결, 방 코드, 위치/블록/몹 동기화 |
 | `js/render.js` | 월드 및 UI 렌더링 |
 | `js/title.js` | 타이틀 화면 |
 | `js/input.js` | 키보드/마우스 입력 처리 |

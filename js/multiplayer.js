@@ -1,19 +1,39 @@
 // ============================================================
-// Multiplayer Networking (Supabase Realtime)
+// Two-player networking (PeerJS / WebRTC)
 // ============================================================
 
-// Player color palette
 const PLAYER_COLORS = [
   '#4aaaa5', '#e06040', '#60a0e0', '#e0c040',
   '#a060d0', '#60d080', '#d07090', '#80c0c0',
 ];
 
-// Generate unique player ID
+const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ROOM_PEER_PREFIX = 'inh-minecraft-';
+const NETWORK_TIMEOUT = 12000;
+
+let roomPeer = null;
+let roomConnection = null;
+let roomSeed = 0;
+let roomBlockChanges = new Map();
+let pendingJoin = null;
+let transportShuttingDown = false;
+
 function generatePlayerId() {
-  return 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  return 'player_' + Date.now() + '_' + Math.random().toString(36).slice(2, 11);
 }
 
-// Get color based on player ID hash
+function generateRoomCode() {
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += ROOM_CODE_CHARS[Math.floor(Math.random() * ROOM_CODE_CHARS.length)];
+  }
+  return code;
+}
+
+function roomPeerId(roomCode) {
+  return ROOM_PEER_PREFIX + roomCode.toLowerCase();
+}
+
 function getPlayerColor(playerId) {
   let hash = 0;
   for (let i = 0; i < playerId.length; i++) {
@@ -23,574 +43,113 @@ function getPlayerColor(playerId) {
   return PLAYER_COLORS[Math.abs(hash) % PLAYER_COLORS.length];
 }
 
-// ─── Create Room (Host) ─────────────────────────────────────
-async function createRoom(name) {
-  connectError = '';
-  try {
-    initSupabase();
-    currentSession = await createGameSession();
-    myId = generatePlayerId();
-    playerName = name;
-    currentRoomCode = currentSession.room_code;
-
-    await joinChannel(currentSession.room_code, name);
-
-    // Host initializes the world
-    isHost = true;
-    initWorldSeed(currentSession.seed);
-    generateWorld();
-
-    player = createPlayer();
-    player.color = getPlayerColor(myId);
-    initClouds();
-    resetGameState();
-
-    isMultiplayer = true;
-    gameState = STATE.PLAYING;
-    addChatMessage('System', 'Room: ' + currentSession.room_code);
-    addChatMessage('System', 'You are the host.');
-
-  } catch (e) {
-    connectError = 'Failed to create room';
-    console.error(e);
-  }
+function waitForPeerOpen(peer, timeout = NETWORK_TIMEOUT) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Connection timed out')), timeout);
+    peer.on('open', id => {
+      clearTimeout(timer);
+      resolve(id);
+    });
+    peer.on('error', error => {
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
 }
 
-// ─── Join Room (Guest) ─────────────────────────────────────
-async function joinRoom(roomCode, name) {
-  connectError = '';
-  try {
-    initSupabase();
-    currentSession = await getGameSession(roomCode);
-
-    if (!currentSession) {
-      connectError = 'Room not found';
+function waitForConnectionOpen(connection, timeout = NETWORK_TIMEOUT) {
+  return new Promise((resolve, reject) => {
+    if (connection.open) {
+      resolve();
       return;
     }
-
-    myId = generatePlayerId();
-    playerName = name;
-    currentRoomCode = currentSession.room_code;
-
-    await joinChannel(roomCode, name);
-
-    // Generate world from shared seed
-    initWorldSeed(currentSession.seed);
-    generateWorld();
-
-    // Load block changes from database
-    const blockChanges = await loadBlockChanges(currentSession.id);
-    for (const bc of blockChanges) {
-      setBlock(bc.bx, bc.by, bc.block_type);
-    }
-
-    player = createPlayer();
-    player.color = getPlayerColor(myId);
-    initClouds();
-    resetGameState();
-
-    isMultiplayer = true;
-    gameState = STATE.PLAYING;
-    addChatMessage('System', 'Connected to room: ' + roomCode);
-
-  } catch (e) {
-    connectError = 'Failed to join room';
-    console.error(e);
-  }
-}
-
-// ─── Realtime Channel Connection ──────────────────────────────────
-async function joinChannel(roomCode, name) {
-  const channelName = `game:${roomCode}`;
-
-  realtimeChannel = supabaseClient.channel(channelName, {
-    config: {
-      broadcast: { self: false },
-      presence: { key: myId }
-    }
-  });
-
-  // Presence event handlers
-  realtimeChannel.on('presence', { event: 'sync' }, () => {
-    handlePresenceSync();
-  });
-
-  realtimeChannel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
-    handlePresenceJoin(key, newPresences);
-  });
-
-  realtimeChannel.on('presence', { event: 'leave' }, ({ key }) => {
-    handlePresenceLeave(key);
-  });
-
-  // Broadcast event handlers
-  realtimeChannel.on('broadcast', { event: 'player_move' }, ({ payload }) => {
-    handlePlayerMove(payload);
-  });
-
-  realtimeChannel.on('broadcast', { event: 'block_set' }, ({ payload }) => {
-    handleBlockSet(payload);
-  });
-
-  realtimeChannel.on('broadcast', { event: 'mob_state' }, ({ payload }) => {
-    handleMobState(payload);
-  });
-
-  realtimeChannel.on('broadcast', { event: 'chat' }, ({ payload }) => {
-    handleChat(payload);
-  });
-
-  realtimeChannel.on('broadcast', { event: 'attack_mob' }, ({ payload }) => {
-    handleAttackMob(payload);
-  });
-
-  realtimeChannel.on('broadcast', { event: 'attack_animal' }, ({ payload }) => {
-    handleAttackAnimal(payload);
-  });
-
-  realtimeChannel.on('broadcast', { event: 'drop_item' }, ({ payload }) => {
-    handleDropItem(payload);
-  });
-
-  realtimeChannel.on('broadcast', { event: 'pickup_item' }, ({ payload }) => {
-    handlePickupItem(payload);
-  });
-
-  realtimeChannel.on('broadcast', { event: 'mob_drop' }, ({ payload }) => {
-    handleMobDrop(payload);
-  });
-
-  realtimeChannel.on('broadcast', { event: 'damage_player' }, ({ payload }) => {
-    handleDamagePlayer(payload);
-  });
-
-  realtimeChannel.on('broadcast', { event: 'pvp_attack' }, ({ payload }) => {
-    handlePvpAttack(payload);
-  });
-
-  // Subscribe to channel
-  await realtimeChannel.subscribe(async (status) => {
-    if (status === 'SUBSCRIBED') {
-      // Register self in Presence
-      await realtimeChannel.track({
-        name: name,
-        color: getPlayerColor(myId),
-        x: 0,
-        y: 0,
-        facing: 1,
-        health: 20,
-        selectedSlot: 0,
-        joinedAt: Date.now()
-      });
-    }
+    const timer = setTimeout(() => reject(new Error('Room connection timed out')), timeout);
+    connection.on('open', () => {
+      clearTimeout(timer);
+      resolve();
+    });
+    connection.on('error', error => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    connection.on('close', () => {
+      clearTimeout(timer);
+      reject(new Error('Room connection closed'));
+    });
   });
 }
 
-// ─── Presence Handlers ─────────────────────────────────────
-function handlePresenceSync() {
-  const state = realtimeChannel.presenceState();
-
-  // Update other players list
-  otherPlayers = {};
-  for (const [key, presences] of Object.entries(state)) {
-    if (key !== myId && presences.length > 0) {
-      const p = presences[0];
-      otherPlayers[key] = {
-        name: p.name,
-        color: p.color,
-        x: p.x || 0,
-        y: p.y || 0,
-        facing: p.facing || 1,
-        walkFrame: 0,
-        health: p.health || 20,
-        selectedSlot: p.selectedSlot || 0
-      };
-    }
-  }
-
-  // Determine host (earliest joinedAt)
-  const newHostId = determineHost(state);
-  const wasHost = isHost;
-  isHost = (newHostId === myId);
-
-  if (isHost && !wasHost) {
-    addChatMessage('System', 'You are now the host!');
-  }
+function waitForRoomSnapshot(timeout = NETWORK_TIMEOUT) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      pendingJoin = null;
+      reject(new Error('Room did not answer'));
+    }, timeout);
+    pendingJoin = {
+      resolve(payload) {
+        clearTimeout(timer);
+        pendingJoin = null;
+        resolve(payload);
+      },
+      reject(error) {
+        clearTimeout(timer);
+        pendingJoin = null;
+        reject(error);
+      }
+    };
+  });
 }
 
-function handlePresenceJoin(key, newPresences) {
-  if (key === myId) return;
+function describePeerError(error, fallback) {
+  if (!error) return fallback;
+  if (error.type === 'peer-unavailable') return 'Room not found';
+  if (error.type === 'unavailable-id') return 'Room code is already in use';
+  if (error.type === 'network' || error.type === 'server-error' || error.type === 'socket-error') {
+    return 'Internet connection failed';
+  }
+  return fallback;
+}
 
-  const p = newPresences[0];
-  otherPlayers[key] = {
-    name: p.name,
-    color: p.color,
-    x: p.x || 0,
-    y: p.y || 0,
-    facing: 1,
-    walkFrame: 0,
-    health: 20,
-    selectedSlot: 0
+function playerNetworkState(id, name, color, source) {
+  return {
+    id,
+    name,
+    color,
+    x: source?.x || 0,
+    y: source?.y || 0,
+    facing: source?.facing || 1,
+    walkFrame: source?.walkFrame || 0,
+    health: source?.health ?? 20,
+    selectedSlot: source?.selectedSlot || 0,
+    armor: source?.armor || null,
+    heldItem: null,
+    offhand: source?.offhand || null,
   };
-  addChatMessage('System', p.name + ' joined');
-
-  // Recalculate host
-  handlePresenceSync();
 }
 
-function handlePresenceLeave(key) {
-  const name = otherPlayers[key]?.name || 'Player';
-  delete otherPlayers[key];
-  addChatMessage('System', name + ' left');
-
-  // Recalculate host
-  handlePresenceSync();
-}
-
-function determineHost(presenceState) {
-  const players = Object.entries(presenceState);
-  if (players.length === 0) return null;
-
-  players.sort((a, b) => {
-    const timeA = a[1][0]?.joinedAt || Infinity;
-    const timeB = b[1][0]?.joinedAt || Infinity;
-    return timeA - timeB;
-  });
-
-  return players[0][0];
-}
-
-// ─── Broadcast Handlers ────────────────────────────────────
-function handlePlayerMove(payload) {
-  const { id, x, y, facing, walkFrame, health, selectedSlot, armor, heldItem, offhand } = payload;
-  if (otherPlayers[id]) {
-    Object.assign(otherPlayers[id], { x, y, facing, walkFrame, health, selectedSlot, armor, heldItem, offhand });
-  }
-}
-
-function handleBlockSet(payload) {
-  const { bx, by, blockType } = payload;
-  setBlock(bx, by, blockType);
-}
-
-function handleMobState(payload) {
-  if (!isHost) {
-    if (payload.mobs) applyMobState(payload.mobs);
-    if (payload.villagers) applyVillagerState(payload.villagers);
-    if (payload.animals) applyAnimalState(payload.animals);
-  }
-}
-
-function handleChat(payload) {
-  addChatMessage(payload.name, payload.message);
-}
-
-function handleAttackMob(payload) {
-  // Only host processes attacks
-  if (!isHost) return;
-  const { mobIndex, damage, knockbackDir, attackerId } = payload;
-  if (mobIndex >= 0 && mobIndex < mobs.length) {
-    const m = mobs[mobIndex];
-    m.health -= damage;
-    m.hurtTimer = 300;
-    m.vx = knockbackDir * 5;
-    m.vy = -4;
-    m.onGround = false;
-    m.lastAttackerId = attackerId; // Track who attacked
-  }
-}
-
-function handleAttackAnimal(payload) {
-  // Only host processes attacks
-  if (!isHost) return;
-  const { animalIndex, damage, knockbackDir, attackerId } = payload;
-  if (animalIndex >= 0 && animalIndex < animals.length) {
-    const a = animals[animalIndex];
-    a.health -= damage;
-    a.hurtTimer = 300;
-    a.vx = knockbackDir * 4;
-    a.vy = -3;
-    a.onGround = false;
-    a.state = 'flee';
-    a.fleeTimer = 3000;
-    a.lastAttackerId = attackerId; // Track who attacked
-  }
-}
-
-function handleDropItem(payload) {
-  const { x, y, vx, vy, type, count } = payload;
-  const dropped = {
-    x, y, vx, vy, type, count,
-    w: 16, h: 16,
-    onGround: false,
-    pickupDelay: 500,
-    life: 300000
-  };
-  droppedItems.push(dropped);
-}
-
-function handlePickupItem(payload) {
-  const { index } = payload;
-  if (index >= 0 && index < droppedItems.length) {
-    droppedItems.splice(index, 1);
-  }
-}
-
-function handleMobDrop(payload) {
-  // Receive drop from host (for player who killed the mob)
-  const { targetId, itemType } = payload;
-  if (targetId === myId) {
-    addToInventory(itemType);
-  }
-}
-
-function handleDamagePlayer(payload) {
-  // Receive damage from host (mob attacked us)
-  const { targetId, damage, knockbackDir } = payload;
-  if (targetId === myId && playerHurtTimer <= 0 && playerDeathTimer <= 0) {
-    player.health -= damage;
-    playerHurtTimer = 500;
-    player.vx = knockbackDir * 6;
-    player.vy = -4;
-    if (player.health <= 0) {
-      player.health = 0;
-      playerDeathTimer = 3000;
-    }
-  }
-}
-
-function handlePvpAttack(payload) {
-  // Receive PvP attack from another player
-  const { targetId, attackerId, damage, knockbackDir } = payload;
-  if (targetId === myId && playerHurtTimer <= 0 && playerDeathTimer <= 0) {
-    player.health -= damage;
-    playerHurtTimer = 500;
-    player.vx = knockbackDir * 8;
-    player.vy = -5;
-    if (player.health <= 0) {
-      player.health = 0;
-      playerDeathTimer = 3000;
-      // Notify attacker gets the kill
-      const attackerName = otherPlayers[attackerId]?.name || 'Player';
-      addChatMessage('System', attackerName + ' killed you!');
-    }
-  }
-}
-
-// ─── Message Send Functions ────────────────────────────────
-function netSendPosition() {
-  if (!isMultiplayer || !realtimeChannel) return;
-
-  // Get currently held item for rendering on other clients
-  const heldItem = player.inventory[player.selectedSlot];
-
-  realtimeChannel.send({
-    type: 'broadcast',
-    event: 'player_move',
-    payload: {
-      id: myId,
-      x: player.x,
-      y: player.y,
-      facing: player.facing,
-      walkFrame: player.walkFrame,
-      health: player.health,
-      selectedSlot: player.selectedSlot,
-      armor: player.armor,
-      heldItem: heldItem ? { type: heldItem.type, count: heldItem.count } : null,
-      offhand: player.offhand ? { type: player.offhand.type, count: player.offhand.count } : null
-    }
-  });
-}
-
-function netSendBlock(bx, by, blockType) {
-  if (!isMultiplayer || !realtimeChannel) return;
-
-  // Broadcast immediately
-  realtimeChannel.send({
-    type: 'broadcast',
-    event: 'block_set',
-    payload: { bx, by, blockType, playerId: myId }
-  });
-
-  // Save to database
-  if (currentSession) {
-    saveBlockChange(currentSession.id, bx, by, blockType);
-  }
-}
-
-function netSendMobState() {
-  if (!isMultiplayer || !realtimeChannel || !isHost) return;
-
-  const mobData = mobs.map(m => ({
+function serializeMobs() {
+  return mobs.map(m => ({
     type: m.type, x: m.x, y: m.y, facing: m.facing,
     walkFrame: m.walkFrame, health: m.health, maxHealth: m.maxHealth,
     state: m.state, fuse: m.fuse, hurtTimer: m.hurtTimer,
   }));
+}
 
-  const villagerData = serializeVillagers();
-
-  const animalData = animals.map(a => ({
+function serializeAnimals() {
+  return animals.map(a => ({
     type: a.type, x: a.x, y: a.y, facing: a.facing,
     walkFrame: a.walkFrame, health: a.health, maxHealth: a.maxHealth,
     state: a.state, hurtTimer: a.hurtTimer,
   }));
-
-  realtimeChannel.send({
-    type: 'broadcast',
-    event: 'mob_state',
-    payload: { mobs: mobData, villagers: villagerData, animals: animalData }
-  });
 }
 
-function netSendChat(message) {
-  if (!isMultiplayer || !realtimeChannel) return;
+function initializeMultiplayerWorld(seed) {
+  initWorldSeed(seed);
+  generateWorld();
+  player = createPlayer();
+  player.color = getPlayerColor(myId);
+  initClouds();
 
-  realtimeChannel.send({
-    type: 'broadcast',
-    event: 'chat',
-    payload: { id: myId, name: playerName, message }
-  });
-}
-
-function netSendAttackMob(mobIndex, damage, knockbackDir) {
-  if (!isMultiplayer || !realtimeChannel) return;
-
-  realtimeChannel.send({
-    type: 'broadcast',
-    event: 'attack_mob',
-    payload: { mobIndex, damage, knockbackDir, attackerId: myId }
-  });
-}
-
-function netSendAttackAnimal(animalIndex, damage, knockbackDir) {
-  if (!isMultiplayer || !realtimeChannel) return;
-
-  realtimeChannel.send({
-    type: 'broadcast',
-    event: 'attack_animal',
-    payload: { animalIndex, damage, knockbackDir, attackerId: myId }
-  });
-}
-
-function netSendDropItem(dropped) {
-  if (!isMultiplayer || !realtimeChannel) return;
-
-  realtimeChannel.send({
-    type: 'broadcast',
-    event: 'drop_item',
-    payload: {
-      x: dropped.x,
-      y: dropped.y,
-      vx: dropped.vx,
-      vy: dropped.vy,
-      type: dropped.type,
-      count: dropped.count
-    }
-  });
-}
-
-function netSendPickupItem(index) {
-  if (!isMultiplayer || !realtimeChannel) return;
-
-  realtimeChannel.send({
-    type: 'broadcast',
-    event: 'pickup_item',
-    payload: { index }
-  });
-}
-
-function netSendMobDrop(targetId, itemType) {
-  if (!isMultiplayer || !realtimeChannel) return;
-
-  realtimeChannel.send({
-    type: 'broadcast',
-    event: 'mob_drop',
-    payload: { targetId, itemType }
-  });
-}
-
-function netSendDamagePlayer(targetId, damage, knockbackDir) {
-  if (!isMultiplayer || !realtimeChannel) return;
-
-  realtimeChannel.send({
-    type: 'broadcast',
-    event: 'damage_player',
-    payload: { targetId, damage, knockbackDir }
-  });
-}
-
-function netSendPvpAttack(targetId, damage, knockbackDir) {
-  if (!isMultiplayer || !realtimeChannel) return;
-
-  realtimeChannel.send({
-    type: 'broadcast',
-    event: 'pvp_attack',
-    payload: { targetId, attackerId: myId, damage, knockbackDir }
-  });
-}
-
-// Attack another player (PvP)
-function attackOtherPlayer() {
-  if (!isMultiplayer || inventoryOpen || playerDeathTimer > 0) return false;
-
-  const clickX = mouse.x + camera.x;
-  const clickY = mouse.y + camera.y;
-  const pcx = player.x + player.w / 2;
-  const pcy = player.y + player.h / 2;
-
-  for (const [id, p] of Object.entries(otherPlayers)) {
-    const pw = BLOCK_SIZE * 0.6;
-    const ph = BLOCK_SIZE * 1.7;
-
-    if (clickX >= p.x && clickX <= p.x + pw &&
-        clickY >= p.y && clickY <= p.y + ph) {
-      const dist = Math.sqrt((pcx - p.x - pw/2)**2 + (pcy - p.y - ph/2)**2);
-      if (dist < BLOCK_SIZE * 5) {
-        const damage = getAttackDamage();
-        const kb = (p.x + pw/2) > pcx ? 1 : -1;
-        netSendPvpAttack(id, damage, kb);
-        damageHeldTool();
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-// ─── Network Update ───────────────────────────────────────
-function updateNetwork(dt) {
-  if (!isMultiplayer || !realtimeChannel) return;
-
-  netSendTimer += dt;
-  if (netSendTimer >= NET_SEND_RATE) {
-    netSendTimer = 0;
-    netSendPosition();
-  }
-
-  mobSyncTimer += dt;
-  if (mobSyncTimer >= MOB_SYNC_RATE && isHost) {
-    mobSyncTimer = 0;
-    netSendMobState();
-  }
-}
-
-// ─── Disconnect ───────────────────────────────────────────
-async function disconnectFromServer() {
-  if (realtimeChannel) {
-    await realtimeChannel.untrack();
-    await supabaseClient.removeChannel(realtimeChannel);
-    realtimeChannel = null;
-  }
-  currentSession = null;
-  currentRoomCode = '';
-  isMultiplayer = false;
-  myId = null;
-  isHost = false;
-  otherPlayers = {};
-}
-
-// ─── Utilities ────────────────────────────────────────────
-function resetGameState() {
   mobs = [];
   animals = [];
   arrows = [];
@@ -604,6 +163,487 @@ function resetGameState() {
   playerDeathTimer = 0;
   inventoryOpen = false;
   cursorItem = null;
+  chatMessages = [];
+}
+
+function destroyPeerTransport() {
+  transportShuttingDown = true;
+  if (pendingJoin) pendingJoin.reject(new Error('Connection cancelled'));
+  pendingJoin = null;
+  try {
+    if (roomConnection) roomConnection.close();
+  } catch (error) {
+    console.debug('Connection cleanup:', error);
+  }
+  try {
+    if (roomPeer && !roomPeer.destroyed) roomPeer.destroy();
+  } catch (error) {
+    console.debug('Peer cleanup:', error);
+  }
+  roomConnection = null;
+  realtimeChannel = null;
+  roomPeer = null;
+  transportShuttingDown = false;
+}
+
+// ─── Create Room (Host) ───────────────────────────────────
+async function createRoom(name) {
+  connectError = '';
+  destroyPeerTransport();
+  isMultiplayer = false;
+  otherPlayers = {};
+  myId = generatePlayerId();
+  playerName = (name || 'Player').slice(0, 16);
+  roomSeed = Math.floor(Math.random() * 2147483647);
+  roomBlockChanges = new Map();
+
+  if (typeof Peer === 'undefined') {
+    connectError = 'Online library failed to load';
+    return;
+  }
+
+  try {
+    let opened = false;
+    let lastError = null;
+
+    // A collision is very unlikely, but retrying guarantees a usable room code.
+    for (let attempt = 0; attempt < 5 && !opened; attempt++) {
+      currentRoomCode = generateRoomCode();
+      const peer = new Peer(roomPeerId(currentRoomCode), { debug: 0 });
+      try {
+        await waitForPeerOpen(peer);
+        roomPeer = peer;
+        opened = true;
+      } catch (error) {
+        lastError = error;
+        peer.destroy();
+        if (error.type !== 'unavailable-id') throw error;
+      }
+    }
+
+    if (!opened) throw lastError || new Error('Could not reserve a room code');
+
+    isHost = true;
+    currentSession = { room_code: currentRoomCode, seed: roomSeed };
+    initializeMultiplayerWorld(roomSeed);
+    installHostConnectionListener();
+
+    isMultiplayer = true;
+    gameState = STATE.PLAYING;
+    addChatMessage('System', 'Room: ' + currentRoomCode);
+    addChatMessage('System', 'Send this 6-letter code to your friend.');
+  } catch (error) {
+    destroyPeerTransport();
+    currentRoomCode = '';
+    isHost = false;
+    connectError = describePeerError(error, 'Failed to create room');
+    console.error(error);
+  }
+}
+
+function installHostConnectionListener() {
+  roomPeer.on('connection', connection => {
+    // A room is limited to the host and one guest.
+    if (roomConnection) {
+      connection.on('open', () => {
+        connection.send({ event: 'room_full', payload: {} });
+        setTimeout(() => connection.close(), 250);
+      });
+      return;
+    }
+
+    const metadata = connection.metadata || {};
+    const guestId = metadata.id || connection.peer;
+    const guestName = String(metadata.name || 'Player').slice(0, 16);
+    const guestColor = metadata.color || getPlayerColor(guestId);
+    attachRoomConnection(connection, guestId, guestName, guestColor);
+
+    connection.on('open', () => {
+      otherPlayers[guestId] = playerNetworkState(guestId, guestName, guestColor);
+      addChatMessage('System', guestName + ' joined');
+
+      connection.send({
+        event: 'init',
+        payload: {
+          roomCode: currentRoomCode,
+          seed: roomSeed,
+          blockChanges: Array.from(roomBlockChanges.values()),
+          host: playerNetworkState(myId, playerName, getPlayerColor(myId), player),
+          mobs: serializeMobs(),
+          villagers: serializeVillagers(),
+          animals: serializeAnimals(),
+        }
+      });
+    });
+  });
+}
+
+// ─── Join Room (Guest) ────────────────────────────────────
+async function joinRoom(roomCode, name) {
+  connectError = '';
+  destroyPeerTransport();
+  isMultiplayer = false;
+  otherPlayers = {};
+
+  const normalizedCode = String(roomCode || '').trim().toUpperCase();
+  if (!/^[A-Z2-9]{6}$/.test(normalizedCode)) {
+    connectError = 'Enter a valid 6-letter room code';
+    return;
+  }
+  if (typeof Peer === 'undefined') {
+    connectError = 'Online library failed to load';
+    return;
+  }
+
+  myId = generatePlayerId();
+  playerName = (name || 'Player').slice(0, 16);
+  currentRoomCode = normalizedCode;
+
+  try {
+    roomPeer = new Peer(undefined, { debug: 0 });
+    roomPeer.on('error', error => {
+      if (pendingJoin) pendingJoin.reject(error);
+    });
+    await waitForPeerOpen(roomPeer);
+
+    const snapshotPromise = waitForRoomSnapshot();
+    const connection = roomPeer.connect(roomPeerId(normalizedCode), {
+      metadata: {
+        id: myId,
+        name: playerName,
+        color: getPlayerColor(myId),
+      },
+      serialization: 'json',
+      reliable: true,
+    });
+
+    attachRoomConnection(connection, null, null, null);
+    const [snapshot] = await Promise.all([
+      snapshotPromise,
+      waitForConnectionOpen(connection),
+    ]);
+
+    roomSeed = snapshot.seed;
+    currentSession = { room_code: normalizedCode, seed: roomSeed };
+    isHost = false;
+    initializeMultiplayerWorld(roomSeed);
+
+    roomBlockChanges = new Map();
+    for (const change of snapshot.blockChanges || []) {
+      const key = change.bx + ',' + change.by;
+      roomBlockChanges.set(key, change);
+      setBlock(change.bx, change.by, change.blockType);
+    }
+    if (snapshot.mobs) applyMobState(snapshot.mobs);
+    if (snapshot.villagers) applyVillagerState(snapshot.villagers);
+    if (snapshot.animals) applyAnimalState(snapshot.animals);
+
+    if (snapshot.host) {
+      otherPlayers[snapshot.host.id] = snapshot.host;
+    }
+
+    isMultiplayer = true;
+    gameState = STATE.PLAYING;
+    addChatMessage('System', 'Connected to room: ' + normalizedCode);
+  } catch (error) {
+    destroyPeerTransport();
+    currentSession = null;
+    currentRoomCode = '';
+    isHost = false;
+    connectError = describePeerError(error, error.message === 'Room is full' ? 'Room is full (2/2)' : 'Failed to join room');
+    if (error.message === 'Room is full') {
+      console.info('Room is full');
+    } else {
+      console.error(error);
+    }
+  }
+}
+
+function attachRoomConnection(connection, remoteId, remoteName, remoteColor) {
+  roomConnection = connection;
+  realtimeChannel = connection; // Kept for compatibility with the existing game state.
+
+  connection.on('data', message => handlePeerMessage(message));
+  connection.on('error', error => {
+    if (pendingJoin) pendingJoin.reject(error);
+    console.error('Room connection error:', error);
+  });
+  connection.on('close', () => {
+    if (roomConnection !== connection) return;
+    roomConnection = null;
+    realtimeChannel = null;
+
+    if (remoteId && otherPlayers[remoteId]) {
+      const leftName = otherPlayers[remoteId].name || remoteName || 'Player';
+      delete otherPlayers[remoteId];
+      if (isMultiplayer && !transportShuttingDown) addChatMessage('System', leftName + ' left');
+    } else if (isMultiplayer && !isHost && !transportShuttingDown) {
+      otherPlayers = {};
+      isHost = true;
+      addChatMessage('System', 'Host left. You can keep playing offline.');
+    }
+  });
+}
+
+function handlePeerMessage(message) {
+  if (!message || typeof message.event !== 'string') return;
+  const payload = message.payload || {};
+
+  if (message.event === 'init') {
+    if (pendingJoin) pendingJoin.resolve(payload);
+    return;
+  }
+  if (message.event === 'room_full') {
+    if (pendingJoin) pendingJoin.reject(new Error('Room is full'));
+    return;
+  }
+
+  switch (message.event) {
+    case 'player_move':
+      handlePlayerMove(payload);
+      break;
+    case 'block_set':
+      handleBlockSet(payload);
+      if (isHost) roomBlockChanges.set(payload.bx + ',' + payload.by, payload);
+      break;
+    case 'mob_state': handleMobState(payload); break;
+    case 'chat': handleChat(payload); break;
+    case 'attack_mob': handleAttackMob(payload); break;
+    case 'attack_animal': handleAttackAnimal(payload); break;
+    case 'drop_item': handleDropItem(payload); break;
+    case 'pickup_item': handlePickupItem(payload); break;
+    case 'mob_drop': handleMobDrop(payload); break;
+    case 'damage_player': handleDamagePlayer(payload); break;
+    case 'pvp_attack': handlePvpAttack(payload); break;
+  }
+}
+
+function sendNetworkEvent(event, payload) {
+  if (!isMultiplayer || !roomConnection || !roomConnection.open) return false;
+  roomConnection.send({ event, payload });
+  return true;
+}
+
+// ─── Network event handlers ───────────────────────────────
+function handlePlayerMove(payload) {
+  const { id, x, y, facing, walkFrame, health, selectedSlot, armor, heldItem, offhand } = payload;
+  if (!id || id === myId) return;
+  if (!otherPlayers[id]) {
+    otherPlayers[id] = playerNetworkState(id, payload.name || 'Player', payload.color || getPlayerColor(id));
+  }
+  Object.assign(otherPlayers[id], { x, y, facing, walkFrame, health, selectedSlot, armor, heldItem, offhand });
+}
+
+function handleBlockSet(payload) {
+  setBlock(payload.bx, payload.by, payload.blockType);
+}
+
+function handleMobState(payload) {
+  if (isHost) return;
+  if (payload.mobs) applyMobState(payload.mobs);
+  if (payload.villagers) applyVillagerState(payload.villagers);
+  if (payload.animals) applyAnimalState(payload.animals);
+}
+
+function handleChat(payload) {
+  addChatMessage(payload.name, payload.message);
+}
+
+function handleAttackMob(payload) {
+  if (!isHost) return;
+  const { mobIndex, damage, knockbackDir, attackerId } = payload;
+  if (mobIndex >= 0 && mobIndex < mobs.length) {
+    const mob = mobs[mobIndex];
+    mob.health -= damage;
+    mob.hurtTimer = 300;
+    mob.vx = knockbackDir * 5;
+    mob.vy = -4;
+    mob.onGround = false;
+    mob.lastAttackerId = attackerId;
+  }
+}
+
+function handleAttackAnimal(payload) {
+  if (!isHost) return;
+  const { animalIndex, damage, knockbackDir, attackerId } = payload;
+  if (animalIndex >= 0 && animalIndex < animals.length) {
+    const animal = animals[animalIndex];
+    animal.health -= damage;
+    animal.hurtTimer = 300;
+    animal.vx = knockbackDir * 4;
+    animal.vy = -3;
+    animal.onGround = false;
+    animal.state = 'flee';
+    animal.fleeTimer = 3000;
+    animal.lastAttackerId = attackerId;
+  }
+}
+
+function handleDropItem(payload) {
+  droppedItems.push({
+    x: payload.x, y: payload.y, vx: payload.vx, vy: payload.vy,
+    type: payload.type, count: payload.count,
+    w: 16, h: 16, onGround: false, pickupDelay: 500, life: 300000,
+  });
+}
+
+function handlePickupItem(payload) {
+  if (payload.index >= 0 && payload.index < droppedItems.length) {
+    droppedItems.splice(payload.index, 1);
+  }
+}
+
+function handleMobDrop(payload) {
+  if (payload.targetId === myId) addToInventory(payload.itemType);
+}
+
+function handleDamagePlayer(payload) {
+  if (payload.targetId !== myId || playerHurtTimer > 0 || playerDeathTimer > 0) return;
+  player.health -= payload.damage;
+  playerHurtTimer = 500;
+  player.vx = payload.knockbackDir * 6;
+  player.vy = -4;
+  if (player.health <= 0) {
+    player.health = 0;
+    playerDeathTimer = 3000;
+  }
+}
+
+function handlePvpAttack(payload) {
+  if (payload.targetId !== myId || playerHurtTimer > 0 || playerDeathTimer > 0) return;
+  player.health -= payload.damage;
+  playerHurtTimer = 500;
+  player.vx = payload.knockbackDir * 8;
+  player.vy = -5;
+  if (player.health <= 0) {
+    player.health = 0;
+    playerDeathTimer = 3000;
+    const attackerName = otherPlayers[payload.attackerId]?.name || 'Player';
+    addChatMessage('System', attackerName + ' killed you!');
+  }
+}
+
+// ─── Send functions used by the rest of the game ──────────
+function netSendPosition() {
+  if (!player) return;
+  const heldItem = player.inventory[player.selectedSlot];
+  sendNetworkEvent('player_move', {
+    id: myId,
+    name: playerName,
+    color: getPlayerColor(myId),
+    x: player.x,
+    y: player.y,
+    facing: player.facing,
+    walkFrame: player.walkFrame,
+    health: player.health,
+    selectedSlot: player.selectedSlot,
+    armor: player.armor,
+    heldItem: heldItem ? { type: heldItem.type, count: heldItem.count } : null,
+    offhand: player.offhand ? { type: player.offhand.type, count: player.offhand.count } : null,
+  });
+}
+
+function netSendBlock(bx, by, blockType) {
+  if (!isMultiplayer) return;
+  const payload = { bx, by, blockType, playerId: myId };
+  if (isHost) roomBlockChanges.set(bx + ',' + by, payload);
+  sendNetworkEvent('block_set', payload);
+}
+
+function netSendMobState() {
+  if (!isHost) return;
+  sendNetworkEvent('mob_state', {
+    mobs: serializeMobs(),
+    villagers: serializeVillagers(),
+    animals: serializeAnimals(),
+  });
+}
+
+function netSendChat(message) {
+  sendNetworkEvent('chat', { id: myId, name: playerName, message });
+}
+
+function netSendAttackMob(mobIndex, damage, knockbackDir) {
+  sendNetworkEvent('attack_mob', { mobIndex, damage, knockbackDir, attackerId: myId });
+}
+
+function netSendAttackAnimal(animalIndex, damage, knockbackDir) {
+  sendNetworkEvent('attack_animal', { animalIndex, damage, knockbackDir, attackerId: myId });
+}
+
+function netSendDropItem(dropped) {
+  sendNetworkEvent('drop_item', {
+    x: dropped.x, y: dropped.y, vx: dropped.vx, vy: dropped.vy,
+    type: dropped.type, count: dropped.count,
+  });
+}
+
+function netSendPickupItem(index) {
+  sendNetworkEvent('pickup_item', { index });
+}
+
+function netSendMobDrop(targetId, itemType) {
+  sendNetworkEvent('mob_drop', { targetId, itemType });
+}
+
+function netSendDamagePlayer(targetId, damage, knockbackDir) {
+  sendNetworkEvent('damage_player', { targetId, damage, knockbackDir });
+}
+
+function netSendPvpAttack(targetId, damage, knockbackDir) {
+  sendNetworkEvent('pvp_attack', { targetId, attackerId: myId, damage, knockbackDir });
+}
+
+function attackOtherPlayer() {
+  if (!isMultiplayer || inventoryOpen || playerDeathTimer > 0) return false;
+  const clickX = mouse.x + camera.x;
+  const clickY = mouse.y + camera.y;
+  const pcx = player.x + player.w / 2;
+  const pcy = player.y + player.h / 2;
+
+  for (const [id, other] of Object.entries(otherPlayers)) {
+    const width = BLOCK_SIZE * 0.6;
+    const height = BLOCK_SIZE * 1.7;
+    if (clickX >= other.x && clickX <= other.x + width &&
+        clickY >= other.y && clickY <= other.y + height) {
+      const distance = Math.hypot(pcx - other.x - width / 2, pcy - other.y - height / 2);
+      if (distance < BLOCK_SIZE * 5) {
+        const damage = getAttackDamage();
+        const knockback = other.x + width / 2 > pcx ? 1 : -1;
+        netSendPvpAttack(id, damage, knockback);
+        damageHeldTool();
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function updateNetwork(dt) {
+  if (!isMultiplayer || !roomConnection || !roomConnection.open) return;
+  netSendTimer += dt;
+  if (netSendTimer >= NET_SEND_RATE) {
+    netSendTimer = 0;
+    netSendPosition();
+  }
+
+  mobSyncTimer += dt;
+  if (mobSyncTimer >= MOB_SYNC_RATE && isHost) {
+    mobSyncTimer = 0;
+    netSendMobState();
+  }
+}
+
+async function disconnectFromServer() {
+  isMultiplayer = false;
+  destroyPeerTransport();
+  currentSession = null;
+  currentRoomCode = '';
+  myId = null;
+  isHost = false;
+  otherPlayers = {};
+  roomSeed = 0;
+  roomBlockChanges = new Map();
 }
 
 function addChatMessage(name, message) {
@@ -611,9 +651,7 @@ function addChatMessage(name, message) {
   if (chatMessages.length > 50) chatMessages.shift();
 }
 
-// Legacy function for compatibility
 async function connectToServer(address, name) {
-  // If address looks like a room code, join; otherwise create
   if (address.length <= 8 && /^[A-Z0-9]+$/i.test(address)) {
     await joinRoom(address.toUpperCase(), name);
   } else {

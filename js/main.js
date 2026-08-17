@@ -111,15 +111,5 @@ window.addEventListener('resize', resize);
 initTitle();
 initAchievements();
 
-// Initialize Supabase auth
-(async function initAuth() {
-  try {
-    await checkAuthSession();
-    setupAuthListener();
-  } catch (e) {
-    console.log('Auth init skipped');
-  }
-})();
-
 lastTime = performance.now();
 requestAnimationFrame(gameLoop);

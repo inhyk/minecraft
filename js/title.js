@@ -108,57 +108,6 @@ function drawTitle() {
   ctx.textAlign = 'right';
   ctx.fillText('Made with Canvas', canvas.width - 8, canvas.height - 8);
 
-  // Google Login Button (top right)
-  drawGoogleAuthButton();
-}
-
-function drawGoogleAuthButton() {
-  const btnW = 160;
-  const btnH = 36;
-  const btnX = canvas.width - btnW - 15;
-  const btnY = 15;
-
-  const hovered = mouse.x >= btnX && mouse.x <= btnX + btnW &&
-                  mouse.y >= btnY && mouse.y <= btnY + btnH;
-
-  titleButtons['google_auth'] = { x: btnX, y: btnY, w: btnW, h: btnH };
-
-  if (currentUser) {
-    // Logged in - show user info and logout
-    ctx.fillStyle = hovered ? 'rgba(100, 60, 60, 0.9)' : 'rgba(60, 60, 60, 0.9)';
-    ctx.fillRect(btnX, btnY, btnW, btnH);
-    ctx.strokeStyle = '#666';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(btnX, btnY, btnW, btnH);
-
-    ctx.fillStyle = '#fff';
-    ctx.font = '12px monospace';
-    ctx.textAlign = 'center';
-    const displayName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User';
-    const shortName = displayName.length > 12 ? displayName.substring(0, 12) + '...' : displayName;
-    ctx.fillText(shortName, btnX + btnW/2, btnY + 15);
-    ctx.fillStyle = '#aaa';
-    ctx.font = '10px monospace';
-    ctx.fillText('Click to logout', btnX + btnW/2, btnY + 28);
-  } else {
-    // Not logged in - show Google sign in
-    ctx.fillStyle = hovered ? 'rgba(66, 133, 244, 0.95)' : 'rgba(66, 133, 244, 0.85)';
-    ctx.fillRect(btnX, btnY, btnW, btnH);
-    ctx.strokeStyle = '#5a9cf0';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(btnX, btnY, btnW, btnH);
-
-    // Google icon (simple G)
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 16px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText('G', btnX + 12, btnY + 24);
-
-    // Text
-    ctx.font = '13px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('Sign in with Google', btnX + btnW/2 + 8, btnY + 23);
-  }
 }
 
 function drawMinecraftText(text, x, y, scale) {
@@ -233,13 +182,6 @@ function handleTitleClick() {
       }
       if (id === 'controls') {
         gameState = STATE.CONTROLS;
-      }
-      if (id === 'google_auth') {
-        if (currentUser) {
-          signOut();
-        } else {
-          signInWithGoogle();
-        }
       }
     }
   }
@@ -473,8 +415,6 @@ function drawConnectScreen() {
     ctx.fillText('Enter: Create Room', cx, instrY);
   }
 
-  // Google Login Button (top right)
-  drawGoogleAuthButton();
 }
 
 function drawInputField(label, value, x, y, focused) {
@@ -524,13 +464,6 @@ function handleConnectClick() {
       if (id === 'mp_back') {
         gameState = STATE.TITLE;
         initTitle();
-      }
-      if (id === 'google_auth') {
-        if (currentUser) {
-          signOut();
-        } else {
-          signInWithGoogle();
-        }
       }
     }
   }
@@ -669,8 +602,6 @@ function drawWorldSelectScreen() {
   // Back button
   drawWorldSelectButton("Back", cx - 80, btnY + 95, 160, 35, 'ws_back', true);
 
-  // Google Login Button (top right)
-  drawGoogleAuthButton();
 }
 
 function drawWorldSelectButton(text, x, y, w, h, id, enabled) {
@@ -748,14 +679,6 @@ function handleWorldSelectClick() {
         return;
       }
 
-      if (id === 'google_auth') {
-        if (currentUser) {
-          signOut();
-        } else {
-          signInWithGoogle();
-        }
-        return;
-      }
     }
   }
 }
