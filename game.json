@@ -14,5 +14,11 @@
   "featured": false,
   "repo": "inhyk/minecraft",
   "playUrl": "https://inh-minecraft.vercel.app",
-  "githubUrl": "https://github.com/inhyk/minecraft"
+  "githubUrl": "https://github.com/inhyk/minecraft",
+  "thumbnail": "/images/games/inh-minecraft-thumb.png",
+  "screenshots": [
+    "/images/games/inh-minecraft-1.png",
+    "/images/games/inh-minecraft-2.png",
+    "/images/games/inh-minecraft-3.png"
+  ]
 }
