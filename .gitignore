@@ -3,3 +3,7 @@ tmpclaude-*-cwd
 .vercel
 .mcp.json
 image.png
+.vercel/
+.DS_Store
+.omx/
+*.log

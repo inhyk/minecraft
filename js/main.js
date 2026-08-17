@@ -92,11 +92,11 @@ function gameLoop(timestamp) {
     if (isMultiplayer) {
       const count = Object.keys(otherPlayers).length + 1;
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(canvas.width - 135, 34, 127, 22);
+      ctx.fillRect(canvas.width - 225, 34, 217, 22);
       ctx.fillStyle = '#6f6';
       ctx.font = '12px monospace';
       ctx.textAlign = 'right';
-      ctx.fillText(`Online: ${count} ${isHost ? '(Host)' : ''}`, canvas.width - 14, 49);
+      ctx.fillText(`ROOM ${currentRoomCode}  •  ${count} ONLINE ${isHost ? '(Host)' : ''}`, canvas.width - 14, 49);
     }
   }
 

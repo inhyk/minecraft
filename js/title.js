@@ -91,7 +91,7 @@ function drawTitle() {
 
   // Buttons
   drawTitleButton("Singleplayer", canvas.width / 2, canvas.height * 0.48, 300, 50, 'play');
-  drawTitleButton("Multiplayer", canvas.width / 2, canvas.height * 0.57, 300, 50, 'multiplayer');
+  drawTitleButton("Online 2 Players", canvas.width / 2, canvas.height * 0.57, 300, 50, 'multiplayer');
   drawTitleButton("Controls", canvas.width / 2, canvas.height * 0.66, 300, 50, 'controls');
 
   // Controls info
