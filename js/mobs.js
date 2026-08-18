@@ -480,6 +480,12 @@ function applyMobState(mobData) {
     m.state = md.state;
     m.fuse = md.fuse;
     m.hurtTimer = md.hurtTimer;
+    m.vx = md.vx ?? m.vx;
+    m.vy = md.vy ?? m.vy;
+    m.onGround = md.onGround ?? m.onGround;
+    m.shootCooldown = md.shootCooldown ?? m.shootCooldown;
+    m.idleTimer = md.idleTimer ?? m.idleTimer;
+    m.despawnTimer = md.despawnTimer ?? m.despawnTimer;
     return m;
   });
 }

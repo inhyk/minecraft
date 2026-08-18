@@ -7,7 +7,8 @@ const PORT = process.env.PORT || 3000;
 
 // ─── HTTP Server (serve index.html) ─────────────────────────
 const httpServer = http.createServer((req, res) => {
-  let filePath = req.url === '/' ? '/index.html' : req.url;
+  const requestPath = new URL(req.url, 'http://localhost').pathname;
+  let filePath = requestPath === '/' ? '/index.html' : requestPath;
   filePath = path.join(__dirname, filePath);
   const ext = path.extname(filePath);
   const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };

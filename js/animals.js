@@ -543,6 +543,12 @@ function applyAnimalState(animalData) {
     a.maxHealth = ad.maxHealth;
     a.state = ad.state;
     a.hurtTimer = ad.hurtTimer;
+    a.vx = ad.vx ?? a.vx;
+    a.vy = ad.vy ?? a.vy;
+    a.onGround = ad.onGround ?? a.onGround;
+    a.idleTimer = ad.idleTimer ?? a.idleTimer;
+    a.wanderTimer = ad.wanderTimer ?? a.wanderTimer;
+    a.fleeTimer = ad.fleeTimer ?? a.fleeTimer;
     return a;
   });
 }

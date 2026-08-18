@@ -138,6 +138,9 @@ function serializeMobs() {
     id: m.networkId, type: m.type, x: m.x, y: m.y, facing: m.facing,
     walkFrame: m.walkFrame, health: m.health, maxHealth: m.maxHealth,
     state: m.state, fuse: m.fuse, hurtTimer: m.hurtTimer,
+    vx: m.vx, vy: m.vy, onGround: m.onGround,
+    shootCooldown: m.shootCooldown, idleTimer: m.idleTimer,
+    despawnTimer: m.despawnTimer,
   }));
 }
 
@@ -146,6 +149,9 @@ function serializeAnimals() {
     id: a.networkId, type: a.type, x: a.x, y: a.y, facing: a.facing,
     walkFrame: a.walkFrame, health: a.health, maxHealth: a.maxHealth,
     state: a.state, hurtTimer: a.hurtTimer,
+    vx: a.vx, vy: a.vy, onGround: a.onGround,
+    idleTimer: a.idleTimer, wanderTimer: a.wanderTimer,
+    fleeTimer: a.fleeTimer,
   }));
 }
 
@@ -160,6 +166,7 @@ function initializeMultiplayerWorld(seed) {
   nextMobNetworkId = 1;
   animals = [];
   nextAnimalNetworkId = 1;
+  lastCreatureSnapshotAt = Date.now();
   arrows = [];
   particles = [];
   droppedItems = [];
@@ -636,6 +643,7 @@ function handleBlockSet(payload) {
 
 function handleMobState(payload) {
   if (isHost) return;
+  lastCreatureSnapshotAt = Date.now();
   if (payload.mobs) applyMobState(payload.mobs);
   if (payload.villagers) applyVillagerState(payload.villagers);
   if (payload.animals) applyAnimalState(payload.animals);

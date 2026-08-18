@@ -7,6 +7,55 @@ function resize() {
   canvas.height = window.innerHeight;
 }
 
+function updateHostCreatures(dt) {
+  spawnMobs(dt);
+  updateMobs(dt);
+  spawnAnimals(dt);
+  updateAnimals(dt);
+  updateVillagers(dt);
+}
+
+function updateGuestCreatures(dt) {
+  if (Date.now() - lastCreatureSnapshotAt > CREATURE_SYNC_STALE_TIME) {
+    // Keep the guest world alive if the host tab/browser is temporarily paused.
+    updateMobs(dt);
+    updateAnimals(dt);
+    updateVillagers(dt);
+    return;
+  }
+  updateRemoteMobs(dt);
+  updateRemoteAnimals(dt);
+}
+
+// requestAnimationFrame pauses in background tabs. A worker keeps the room
+// host's creature simulation and snapshots alive while friends are playing.
+let backgroundCreatureWorker = null;
+let backgroundCreatureLastTick = Date.now();
+
+function startBackgroundCreatureWorker() {
+  if (typeof Worker === 'undefined' || backgroundCreatureWorker) return;
+  const source = 'setInterval(() => postMessage(Date.now()), 50)';
+  const workerUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+  backgroundCreatureWorker = new Worker(workerUrl);
+  URL.revokeObjectURL(workerUrl);
+  backgroundCreatureWorker.onmessage = event => {
+    const now = Number(event.data) || Date.now();
+    const dt = Math.min(Math.max(now - backgroundCreatureLastTick, 0), 100);
+    backgroundCreatureLastTick = now;
+    if (!document.hidden || gameState !== STATE.PLAYING || !isMultiplayer || !isHost) return;
+    if (!Array.from(roomConnections.values()).some(connection => connection.open)) return;
+    updateHostCreatures(dt || MOB_SYNC_RATE);
+    netSendMobState();
+  };
+}
+
+document.addEventListener('visibilitychange', () => {
+  backgroundCreatureLastTick = Date.now();
+  if (!document.hidden && gameState === STATE.PLAYING && isMultiplayer && isHost) {
+    netSendMobState();
+  }
+});
+
 function gameLoop(timestamp) {
   const dt = timestamp - lastTime;
   lastTime = timestamp;
@@ -33,16 +82,12 @@ function gameLoop(timestamp) {
     updateCamera();
     updateClouds(dt);
     updateParticles(dt);
-    // Only host spawns/updates mobs, animals and villagers
-    if (isHost) {
-      spawnMobs(dt);
-      updateMobs(dt);
-      spawnAnimals(dt);
-      updateAnimals(dt);
-      updateVillagers(dt);
-    } else if (isMultiplayer) {
-      updateRemoteMobs(dt);
-      updateRemoteAnimals(dt);
+    // The visible host is authoritative. Guests take over locally only when
+    // snapshots stop, so creatures never freeze on player 2's screen.
+    if (isHost && !document.hidden) {
+      updateHostCreatures(dt);
+    } else if (isMultiplayer && !isHost) {
+      updateGuestCreatures(dt);
     }
     // Nether mobs (single player or host)
     if (typeof spawnNetherMobs === 'function') spawnNetherMobs(dt);
@@ -104,6 +149,7 @@ resize();
 window.addEventListener('resize', resize);
 initTitle();
 initAchievements();
+startBackgroundCreatureWorker();
 
 lastTime = performance.now();
 requestAnimationFrame(gameLoop);

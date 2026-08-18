@@ -83,6 +83,7 @@ let isHost = false;
 let otherPlayers = {}; // id -> { name, color, x, y, facing, walkFrame, health, selectedSlot }
 let netSendTimer = 0;
 let mobSyncTimer = 0;
+let lastCreatureSnapshotAt = 0;
 let playerName = 'Player';
 let connectError = '';
 let chatMessages = [];
