@@ -1,5 +1,5 @@
 // ============================================================
-// Two-player networking (PeerJS / WebRTC)
+// Four-player networking (PeerJS / WebRTC)
 // ============================================================
 
 const PLAYER_COLORS = [
@@ -10,9 +10,13 @@ const PLAYER_COLORS = [
 const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_PEER_PREFIX = 'inh-minecraft-';
 const NETWORK_TIMEOUT = 12000;
+const PLAYER_CONNECTION_TIMEOUT = 10000;
+const MAX_ROOM_PLAYERS = 4;
 
 let roomPeer = null;
 let roomConnection = null;
+let roomConnections = new Map(); // host only: guest id -> PeerJS connection
+let roomGuestLastSeen = new Map();
 let roomSeed = 0;
 let roomBlockChanges = new Map();
 let pendingJoin = null;
@@ -175,6 +179,15 @@ function destroyPeerTransport() {
   } catch (error) {
     console.debug('Connection cleanup:', error);
   }
+  for (const connection of roomConnections.values()) {
+    try {
+      connection.close();
+    } catch (error) {
+      console.debug('Guest connection cleanup:', error);
+    }
+  }
+  roomConnections.clear();
+  roomGuestLastSeen.clear();
   try {
     if (roomPeer && !roomPeer.destroyed) roomPeer.destroy();
   } catch (error) {
@@ -231,7 +244,7 @@ async function createRoom(name) {
     isMultiplayer = true;
     gameState = STATE.PLAYING;
     addChatMessage('System', 'Room: ' + currentRoomCode);
-    addChatMessage('System', 'Send this 6-letter code to your friend.');
+    addChatMessage('System', 'Share this code — up to 4 players can join.');
   } catch (error) {
     destroyPeerTransport();
     currentRoomCode = '';
@@ -243,10 +256,12 @@ async function createRoom(name) {
 
 function installHostConnectionListener() {
   roomPeer.on('connection', connection => {
-    // A room is limited to the host and one guest.
-    if (roomConnection) {
+    pruneGuestConnections();
+
+    // The host acts as a relay for up to three guests.
+    if (roomConnections.size >= MAX_ROOM_PLAYERS - 1) {
       connection.on('open', () => {
-        connection.send({ event: 'room_full', payload: {} });
+        connection.send({ event: 'room_full', payload: { maxPlayers: MAX_ROOM_PLAYERS } });
         setTimeout(() => connection.close(), 250);
       });
       return;
@@ -256,10 +271,32 @@ function installHostConnectionListener() {
     const guestId = metadata.id || connection.peer;
     const guestName = String(metadata.name || 'Player').slice(0, 16);
     const guestColor = metadata.color || getPlayerColor(guestId);
+
+    if (roomConnections.has(guestId)) {
+      connection.on('open', () => {
+        connection.send({ event: 'join_error', payload: { message: 'Duplicate player' } });
+        setTimeout(() => connection.close(), 250);
+      });
+      return;
+    }
+
     attachRoomConnection(connection, guestId, guestName, guestColor);
 
     connection.on('open', () => {
-      otherPlayers[guestId] = playerNetworkState(guestId, guestName, guestColor);
+      if (roomConnections.get(guestId) !== connection) return;
+
+      const players = {
+        [myId]: {
+          ...playerNetworkState(myId, playerName, getPlayerColor(myId), player),
+          isHost: true,
+        }
+      };
+      for (const [id, other] of Object.entries(otherPlayers)) {
+        players[id] = { ...other };
+      }
+
+      const guest = playerNetworkState(guestId, guestName, guestColor);
+      otherPlayers[guestId] = guest;
       addChatMessage('System', guestName + ' joined');
 
       connection.send({
@@ -268,12 +305,14 @@ function installHostConnectionListener() {
           roomCode: currentRoomCode,
           seed: roomSeed,
           blockChanges: Array.from(roomBlockChanges.values()),
-          host: playerNetworkState(myId, playerName, getPlayerColor(myId), player),
+          players,
           mobs: serializeMobs(),
           villagers: serializeVillagers(),
           animals: serializeAnimals(),
         }
       });
+
+      broadcastHostEvent('player_join', { player: guest }, guestId);
     });
   });
 }
@@ -338,8 +377,15 @@ async function joinRoom(roomCode, name) {
     if (snapshot.villagers) applyVillagerState(snapshot.villagers);
     if (snapshot.animals) applyAnimalState(snapshot.animals);
 
-    if (snapshot.host) {
-      otherPlayers[snapshot.host.id] = snapshot.host;
+    if (snapshot.players) {
+      for (const networkPlayer of Object.values(snapshot.players)) {
+        if (networkPlayer?.id && networkPlayer.id !== myId) {
+          otherPlayers[networkPlayer.id] = networkPlayer;
+        }
+      }
+    } else if (snapshot.host) {
+      // Backward compatibility with rooms created by the previous two-player build.
+      otherPlayers[snapshot.host.id] = { ...snapshot.host, isHost: true };
     }
 
     isMultiplayer = true;
@@ -350,7 +396,7 @@ async function joinRoom(roomCode, name) {
     currentSession = null;
     currentRoomCode = '';
     isHost = false;
-    connectError = describePeerError(error, error.message === 'Room is full' ? 'Room is full (2/2)' : 'Failed to join room');
+    connectError = describePeerError(error, error.message === 'Room is full' ? 'Room is full (4/4)' : 'Failed to join room');
     if (error.message === 'Room is full') {
       console.info('Room is full');
     } else {
@@ -360,24 +406,48 @@ async function joinRoom(roomCode, name) {
 }
 
 function attachRoomConnection(connection, remoteId, remoteName, remoteColor) {
-  roomConnection = connection;
+  if (remoteId) {
+    connection.roomAddedAt = Date.now();
+    roomConnections.set(remoteId, connection);
+    roomGuestLastSeen.set(remoteId, Date.now());
+  } else {
+    roomConnection = connection;
+  }
   realtimeChannel = connection; // Kept for compatibility with the existing game state.
 
-  connection.on('data', message => handlePeerMessage(message));
+  connection.on('data', message => handlePeerMessage(message, remoteId));
+  let openTimeout = null;
+  if (remoteId) {
+    openTimeout = setTimeout(() => {
+      if (roomConnections.get(remoteId) === connection && !connection.open) {
+        removeGuestFromRoom(remoteId, connection, false);
+      }
+    }, NETWORK_TIMEOUT + 250);
+    connection.on('open', () => clearTimeout(openTimeout));
+  }
   connection.on('error', error => {
     if (pendingJoin) pendingJoin.reject(error);
+    if (remoteId && roomConnections.get(remoteId) === connection && !connection.open) {
+      removeGuestFromRoom(remoteId, connection, false);
+    }
     console.error('Room connection error:', error);
   });
   connection.on('close', () => {
+    if (openTimeout) clearTimeout(openTimeout);
+    if (remoteId) {
+      removeGuestFromRoom(
+        remoteId,
+        connection,
+        isMultiplayer && !transportShuttingDown,
+        remoteName
+      );
+      return;
+    }
+
     if (roomConnection !== connection) return;
     roomConnection = null;
     realtimeChannel = null;
-
-    if (remoteId && otherPlayers[remoteId]) {
-      const leftName = otherPlayers[remoteId].name || remoteName || 'Player';
-      delete otherPlayers[remoteId];
-      if (isMultiplayer && !transportShuttingDown) addChatMessage('System', leftName + ' left');
-    } else if (isMultiplayer && !isHost && !transportShuttingDown) {
+    if (isMultiplayer && !isHost && !transportShuttingDown) {
       otherPlayers = {};
       isHost = true;
       addChatMessage('System', 'Host left. You can keep playing offline.');
@@ -385,9 +455,13 @@ function attachRoomConnection(connection, remoteId, remoteName, remoteColor) {
   });
 }
 
-function handlePeerMessage(message) {
+function handlePeerMessage(message, sourceId = null) {
   if (!message || typeof message.event !== 'string') return;
-  const payload = message.payload || {};
+  let payload = message.payload || {};
+
+  if (isHost && sourceId && roomConnections.has(sourceId)) {
+    roomGuestLastSeen.set(sourceId, Date.now());
+  }
 
   if (message.event === 'init') {
     if (pendingJoin) pendingJoin.resolve(payload);
@@ -397,8 +471,34 @@ function handlePeerMessage(message) {
     if (pendingJoin) pendingJoin.reject(new Error('Room is full'));
     return;
   }
+  if (message.event === 'join_error') {
+    if (pendingJoin) pendingJoin.reject(new Error(payload.message || 'Could not join room'));
+    return;
+  }
+
+  // Do not trust a guest to claim another player's identity.
+  if (isHost && sourceId) {
+    if (message.event === 'player_move') {
+      payload = {
+        ...payload,
+        id: sourceId,
+        name: otherPlayers[sourceId]?.name || payload.name,
+        color: otherPlayers[sourceId]?.color || payload.color,
+      };
+    } else if (message.event === 'chat') {
+      payload = { ...payload, id: sourceId, name: otherPlayers[sourceId]?.name || 'Player' };
+    } else if (message.event === 'block_set') {
+      payload = { ...payload, playerId: sourceId };
+    } else if (message.event === 'pvp_attack') {
+      payload = { ...payload, attackerId: sourceId };
+    } else if (message.event === 'attack_mob' || message.event === 'attack_animal') {
+      payload = { ...payload, attackerId: sourceId };
+    }
+  }
 
   switch (message.event) {
+    case 'player_join': handlePlayerJoin(payload); break;
+    case 'player_leave': handlePlayerLeave(payload); break;
     case 'player_move':
       handlePlayerMove(payload);
       break;
@@ -416,15 +516,88 @@ function handlePeerMessage(message) {
     case 'damage_player': handleDamagePlayer(payload); break;
     case 'pvp_attack': handlePvpAttack(payload); break;
   }
+
+  // Guests only connect to the host, so the host relays shared events to
+  // every other guest. Host-authoritative combat events are reflected in
+  // the regular mob snapshots instead.
+  if (isHost && sourceId && [
+    'player_move', 'block_set', 'chat', 'drop_item', 'pickup_item',
+    'mob_drop', 'damage_player', 'pvp_attack'
+  ].includes(message.event)) {
+    broadcastHostEvent(message.event, payload, sourceId);
+  }
+}
+
+function broadcastHostEvent(event, payload, excludeId = null) {
+  let sent = false;
+  for (const [guestId, connection] of roomConnections.entries()) {
+    if (guestId === excludeId || !connection.open) continue;
+    connection.send({ event, payload });
+    sent = true;
+  }
+  return sent;
+}
+
+function removeGuestFromRoom(guestId, connection, announce, fallbackName = 'Player') {
+  if (connection && roomConnections.get(guestId) !== connection) return false;
+
+  const activeConnection = roomConnections.get(guestId);
+  const guest = otherPlayers[guestId];
+  roomConnections.delete(guestId);
+  roomGuestLastSeen.delete(guestId);
+  delete otherPlayers[guestId];
+
+  try {
+    if (activeConnection && activeConnection.open) activeConnection.close();
+  } catch (error) {
+    console.debug('Guest connection cleanup:', error);
+  }
+
+  if (announce && guest) {
+    addChatMessage('System', (guest.name || fallbackName) + ' left');
+    broadcastHostEvent('player_leave', { id: guestId });
+  }
+  return true;
+}
+
+function pruneGuestConnections() {
+  if (!isHost) return;
+  const now = Date.now();
+  for (const [guestId, connection] of roomConnections.entries()) {
+    const neverOpened = !connection.open &&
+      now - (connection.roomAddedAt || now) >= NETWORK_TIMEOUT;
+    const stoppedResponding = connection.open &&
+      now - (roomGuestLastSeen.get(guestId) || now) >= PLAYER_CONNECTION_TIMEOUT;
+    if (neverOpened || stoppedResponding) {
+      removeGuestFromRoom(guestId, connection, isMultiplayer && stoppedResponding);
+    }
+  }
 }
 
 function sendNetworkEvent(event, payload) {
-  if (!isMultiplayer || !roomConnection || !roomConnection.open) return false;
+  if (!isMultiplayer) return false;
+  if (isHost) return broadcastHostEvent(event, payload);
+  if (!roomConnection || !roomConnection.open) return false;
   roomConnection.send({ event, payload });
   return true;
 }
 
 // ─── Network event handlers ───────────────────────────────
+function handlePlayerJoin(payload) {
+  const networkPlayer = payload.player;
+  if (!networkPlayer?.id || networkPlayer.id === myId) return;
+  const wasKnown = Boolean(otherPlayers[networkPlayer.id]);
+  otherPlayers[networkPlayer.id] = networkPlayer;
+  if (!wasKnown) addChatMessage('System', (networkPlayer.name || 'Player') + ' joined');
+}
+
+function handlePlayerLeave(payload) {
+  if (!payload.id || !otherPlayers[payload.id]) return;
+  const name = otherPlayers[payload.id].name || 'Player';
+  delete otherPlayers[payload.id];
+  addChatMessage('System', name + ' left');
+}
+
 function handlePlayerMove(payload) {
   const { id, x, y, facing, walkFrame, health, selectedSlot, armor, heldItem, offhand } = payload;
   if (!id || id === myId) return;
@@ -620,7 +793,12 @@ function attackOtherPlayer() {
 }
 
 function updateNetwork(dt) {
-  if (!isMultiplayer || !roomConnection || !roomConnection.open) return;
+  if (!isMultiplayer) return;
+  if (isHost) pruneGuestConnections();
+  const hasOpenConnection = isHost
+    ? Array.from(roomConnections.values()).some(connection => connection.open)
+    : Boolean(roomConnection?.open);
+  if (!hasOpenConnection) return;
   netSendTimer += dt;
   if (netSendTimer >= NET_SEND_RATE) {
     netSendTimer = 0;

@@ -91,7 +91,7 @@ function drawTitle() {
 
   // Buttons
   drawTitleButton("Singleplayer", canvas.width / 2, canvas.height * 0.48, 300, 50, 'play');
-  drawTitleButton("Online 2 Players", canvas.width / 2, canvas.height * 0.57, 300, 50, 'multiplayer');
+  drawTitleButton("Online · Up to 4 Players", canvas.width / 2, canvas.height * 0.57, 300, 50, 'multiplayer');
   drawTitleButton("Controls", canvas.width / 2, canvas.height * 0.66, 300, 50, 'controls');
 
   // Controls info
@@ -349,6 +349,11 @@ function drawConnectScreen() {
 
   // Title
   drawMinecraftText("MULTIPLAYER", cx, cy - 140, 3.5);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = 'bold 13px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('Create a room for up to 4 players', cx, cy - 112);
 
   // Mode tabs
   const tabY = cy - 90;

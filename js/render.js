@@ -490,6 +490,79 @@ function drawHUD() {
   }
 }
 
+// --- Multiplayer Player List ---
+function drawMultiplayerPanel() {
+  if (!isMultiplayer || !player) return;
+
+  const entries = [
+    {
+      id: myId,
+      name: playerName,
+      color: player.color || getPlayerColor(myId),
+      health: player.health,
+      isHost,
+      isMe: true,
+    },
+    ...Object.values(otherPlayers).map(other => ({ ...other, isMe: false })),
+  ].slice(0, MAX_ROOM_PLAYERS);
+
+  const x = 10;
+  const y = 38;
+  const width = Math.min(210, canvas.width - 20);
+  const headerHeight = 38;
+  const rowHeight = 34;
+  const height = headerHeight + entries.length * rowHeight + 8;
+
+  ctx.fillStyle = 'rgba(15, 18, 24, 0.82)';
+  ctx.fillRect(x, y, width, height);
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, width, height);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 13px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(`ROOM ${currentRoomCode}`, x + 10, y + 16);
+  ctx.fillStyle = '#7cff78';
+  ctx.font = '11px monospace';
+  ctx.fillText(`${entries.length}/${MAX_ROOM_PLAYERS} ONLINE`, x + 10, y + 31);
+
+  entries.forEach((entry, index) => {
+    const rowY = y + headerHeight + index * rowHeight;
+    if (entry.isMe) {
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(x + 4, rowY, width - 8, rowHeight - 2);
+    }
+
+    // Pixel-player portrait.
+    const avatarX = x + 10;
+    const avatarY = rowY + 5;
+    ctx.fillStyle = '#c69c6d';
+    ctx.fillRect(avatarX + 3, avatarY, 14, 10);
+    ctx.fillStyle = entry.color || '#4aaaa5';
+    ctx.fillRect(avatarX + 2, avatarY + 10, 16, 13);
+    ctx.fillStyle = '#2b44aa';
+    ctx.fillRect(avatarX + 3, avatarY + 23, 6, 5);
+    ctx.fillRect(avatarX + 11, avatarY + 23, 6, 5);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'left';
+    const suffix = entry.isMe && entry.isHost
+      ? ' (YOU · HOST)'
+      : (entry.isMe ? ' (YOU)' : (entry.isHost ? ' (HOST)' : ''));
+    ctx.fillText((entry.name || 'Player') + suffix, x + 38, rowY + 15);
+
+    const health = Math.max(0, Math.min(20, entry.health ?? 20));
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(x + 38, rowY + 21, Math.min(112, width - 50), 5);
+    ctx.fillStyle = health > 6 ? '#e33' : '#ff8a2a';
+    ctx.fillRect(x + 38, rowY + 21, Math.min(112, width - 50) * health / 20, 5);
+  });
+
+  ctx.textBaseline = 'alphabetic';
+}
+
 function drawHeart(x, y, size) {
   ctx.fillRect(x + size*0.1, y, size*0.35, size*0.45);
   ctx.fillRect(x + size*0.55, y, size*0.35, size*0.45);
