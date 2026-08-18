@@ -2,6 +2,52 @@
 // Input Handling
 // ============================================================
 
+const chatInputProxy = document.getElementById('chat-input-proxy');
+let chatIsComposing = false;
+
+function openChatEditor() {
+  chatOpen = true;
+  chatInput = '';
+  chatIsComposing = false;
+  if (!chatInputProxy) return;
+  chatInputProxy.value = '';
+  requestAnimationFrame(() => {
+    if (chatOpen) chatInputProxy.focus({ preventScroll: true });
+  });
+}
+
+function closeChatEditor() {
+  chatOpen = false;
+  chatInput = '';
+  chatIsComposing = false;
+  if (chatInputProxy) {
+    chatInputProxy.value = '';
+    chatInputProxy.blur();
+  }
+}
+
+function submitChatMessage() {
+  const message = chatInput.trim();
+  if (message) {
+    netSendChat(message);
+    addChatMessage(playerName, message);
+  }
+  closeChatEditor();
+}
+
+if (chatInputProxy) {
+  chatInputProxy.addEventListener('input', () => {
+    if (chatOpen) chatInput = chatInputProxy.value.slice(0, 100);
+  });
+  chatInputProxy.addEventListener('compositionstart', () => {
+    chatIsComposing = true;
+  });
+  chatInputProxy.addEventListener('compositionend', () => {
+    chatIsComposing = false;
+    if (chatOpen) chatInput = chatInputProxy.value.slice(0, 100);
+  });
+}
+
 window.addEventListener('keydown', e => {
   // Connect screen text input
   if (gameState === STATE.CONNECT) {
@@ -74,14 +120,18 @@ window.addEventListener('keydown', e => {
 
   // Chat input
   if (gameState === STATE.PLAYING && chatOpen) {
-    if (e.code === 'Escape') { chatOpen = false; chatInput = ''; return; }
-    if (e.code === 'Enter') {
-      if (chatInput.trim()) { netSendChat(chatInput.trim()); addChatMessage(playerName, chatInput.trim()); }
-      chatOpen = false; chatInput = '';
+    if (e.code === 'Escape') {
+      e.preventDefault();
+      closeChatEditor();
       return;
     }
-    if (e.code === 'Backspace') { e.preventDefault(); chatInput = chatInput.slice(0, -1); return; }
-    if (e.key.length === 1 && chatInput.length < 100) { chatInput += e.key; return; }
+    if (e.code === 'Enter' && !e.isComposing && !chatIsComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      submitChatMessage();
+      return;
+    }
+    // The hidden text input handles normal typing, Backspace, and IME
+    // composition so Korean characters arrive as complete syllables.
     return;
   }
 
@@ -99,7 +149,7 @@ window.addEventListener('keydown', e => {
 
     // Open chat with T (multiplayer only)
     if (e.code === 'KeyT' && isMultiplayer && !inventoryOpen) {
-      chatOpen = true; chatInput = '';
+      openChatEditor();
       e.preventDefault(); return;
     }
 

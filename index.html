@@ -10,12 +10,37 @@
 body { background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
 canvas { display: block; image-rendering: pixelated; cursor: crosshair; }
 canvas.inventory-open { cursor: default; }
+.chat-input-proxy {
+  position: fixed;
+  left: 8px;
+  bottom: 90px;
+  width: 350px;
+  height: 24px;
+  opacity: 0.01;
+  pointer-events: none;
+  border: 0;
+  outline: 0;
+  color: transparent;
+  background: transparent;
+  caret-color: transparent;
+  font-size: 16px;
+}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+<input
+  id="chat-input-proxy"
+  class="chat-input-proxy"
+  type="text"
+  maxlength="100"
+  autocomplete="off"
+  autocapitalize="off"
+  spellcheck="false"
+  aria-label="Chat message"
+>
 
-<!-- PeerJS connects two browsers directly with WebRTC. -->
+<!-- PeerJS connects up to four browsers with WebRTC. -->
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
 
 <!-- Game Scripts (load order matters) -->
