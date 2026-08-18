@@ -40,6 +40,9 @@ function gameLoop(timestamp) {
       spawnAnimals(dt);
       updateAnimals(dt);
       updateVillagers(dt);
+    } else if (isMultiplayer) {
+      updateRemoteMobs(dt);
+      updateRemoteAnimals(dt);
     }
     // Nether mobs (single player or host)
     if (typeof spawnNetherMobs === 'function') spawnNetherMobs(dt);

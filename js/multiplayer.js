@@ -135,7 +135,7 @@ function playerNetworkState(id, name, color, source) {
 
 function serializeMobs() {
   return mobs.map(m => ({
-    type: m.type, x: m.x, y: m.y, facing: m.facing,
+    id: m.networkId, type: m.type, x: m.x, y: m.y, facing: m.facing,
     walkFrame: m.walkFrame, health: m.health, maxHealth: m.maxHealth,
     state: m.state, fuse: m.fuse, hurtTimer: m.hurtTimer,
   }));
@@ -143,7 +143,7 @@ function serializeMobs() {
 
 function serializeAnimals() {
   return animals.map(a => ({
-    type: a.type, x: a.x, y: a.y, facing: a.facing,
+    id: a.networkId, type: a.type, x: a.x, y: a.y, facing: a.facing,
     walkFrame: a.walkFrame, health: a.health, maxHealth: a.maxHealth,
     state: a.state, hurtTimer: a.hurtTimer,
   }));
@@ -157,7 +157,9 @@ function initializeMultiplayerWorld(seed) {
   initClouds();
 
   mobs = [];
+  nextMobNetworkId = 1;
   animals = [];
+  nextAnimalNetworkId = 1;
   arrows = [];
   particles = [];
   droppedItems = [];

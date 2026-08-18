@@ -46,10 +46,13 @@ function attackPlayerByMob(targetPlayer, damage, knockbackDir) {
   }
 }
 
-function createMob(type, x, y) {
+function createMob(type, x, y, networkId = null) {
   return {
+    networkId: networkId || 'mob-' + nextMobNetworkId++,
     type,
     x, y,
+    networkTargetX: x,
+    networkTargetY: y,
     w: BLOCK_SIZE * 0.7,
     h: type === MOB_TYPE.CREEPER ? BLOCK_SIZE * 1.4 : BLOCK_SIZE * 1.8,
     vx: 0, vy: 0,
@@ -460,9 +463,16 @@ function spawnMobDrops(m) {
 }
 
 function applyMobState(mobData) {
-  // Sync mob array from host data
-  mobs = mobData.map(md => {
-    const m = createMob(md.type, md.x, md.y);
+  // Keep the same object for each mob so remote movement can be interpolated.
+  const existingMobs = new Map(mobs.map(m => [m.networkId, m]));
+  mobs = mobData.map((md, index) => {
+    const networkId = md.id || 'legacy-mob-' + index;
+    let m = existingMobs.get(networkId);
+    if (!m || m.type !== md.type) {
+      m = createMob(md.type, md.x, md.y, networkId);
+    }
+    m.networkTargetX = md.x;
+    m.networkTargetY = md.y;
     m.facing = md.facing;
     m.walkFrame = md.walkFrame;
     m.health = md.health;
@@ -472,4 +482,19 @@ function applyMobState(mobData) {
     m.hurtTimer = md.hurtTimer;
     return m;
   });
+}
+
+function updateRemoteMobs(dt) {
+  const blend = 1 - Math.exp(-Math.min(dt, 250) / 55);
+  for (const m of mobs) {
+    if (!Number.isFinite(m.networkTargetX) || !Number.isFinite(m.networkTargetY)) continue;
+    const distance = Math.hypot(m.networkTargetX - m.x, m.networkTargetY - m.y);
+    if (distance > BLOCK_SIZE * 8) {
+      m.x = m.networkTargetX;
+      m.y = m.networkTargetY;
+    } else {
+      m.x += (m.networkTargetX - m.x) * blend;
+      m.y += (m.networkTargetY - m.y) * blend;
+    }
+  }
 }

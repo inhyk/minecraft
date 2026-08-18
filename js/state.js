@@ -58,6 +58,7 @@ let titleTime = 0;
 
 // Monster system state
 let mobs = [];
+let nextMobNetworkId = 1;
 let mobSpawnTimer = 0;
 let playerHurtTimer = 0;
 let playerDeathTimer = 0; // >0 means dead, counts down to respawn
@@ -92,6 +93,7 @@ let currentRoomCode = ''; // Room code for display
 
 // Animal system state
 let animals = [];
+let nextAnimalNetworkId = 1;
 let animalSpawnTimer = 0;
 
 // Particles

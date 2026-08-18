@@ -28,7 +28,7 @@ const ANIMAL_TYPE = { PIG: 0, COW: 1, CHICKEN: 2, SHEEP: 3 };
 
 // Network constants
 const NET_SEND_RATE = 50; // ms between position updates
-const MOB_SYNC_RATE = 100;
+const MOB_SYNC_RATE = 50; // Smooth creature updates for multiplayer guests
 
 // Physics constants
 const TICK_RATE = 1000 / 60; // 60fps reference tick

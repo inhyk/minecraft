@@ -2,7 +2,7 @@
 // Animal System (Passive Mobs)
 // ============================================================
 
-function createAnimal(type, x, y) {
+function createAnimal(type, x, y, networkId = null) {
   const sizes = {
     [ANIMAL_TYPE.PIG]:     { w: BLOCK_SIZE * 0.8, h: BLOCK_SIZE * 0.7 },
     [ANIMAL_TYPE.COW]:     { w: BLOCK_SIZE * 0.9, h: BLOCK_SIZE * 1.0 },
@@ -12,8 +12,11 @@ function createAnimal(type, x, y) {
   const hp = { [ANIMAL_TYPE.PIG]: 6, [ANIMAL_TYPE.COW]: 8, [ANIMAL_TYPE.CHICKEN]: 3, [ANIMAL_TYPE.SHEEP]: 6 };
   const s = sizes[type];
   return {
+    networkId: networkId || 'animal-' + nextAnimalNetworkId++,
     type,
     x, y,
+    networkTargetX: x,
+    networkTargetY: y,
     w: s.w, h: s.h,
     vx: 0, vy: 0,
     health: hp[type],
@@ -525,8 +528,15 @@ function drawSheep(sx, sy, a) {
 }
 
 function applyAnimalState(animalData) {
-  animals = animalData.map(ad => {
-    const a = createAnimal(ad.type, ad.x, ad.y);
+  const existingAnimals = new Map(animals.map(a => [a.networkId, a]));
+  animals = animalData.map((ad, index) => {
+    const networkId = ad.id || 'legacy-animal-' + index;
+    let a = existingAnimals.get(networkId);
+    if (!a || a.type !== ad.type) {
+      a = createAnimal(ad.type, ad.x, ad.y, networkId);
+    }
+    a.networkTargetX = ad.x;
+    a.networkTargetY = ad.y;
     a.facing = ad.facing;
     a.walkFrame = ad.walkFrame;
     a.health = ad.health;
@@ -535,4 +545,19 @@ function applyAnimalState(animalData) {
     a.hurtTimer = ad.hurtTimer;
     return a;
   });
+}
+
+function updateRemoteAnimals(dt) {
+  const blend = 1 - Math.exp(-Math.min(dt, 250) / 55);
+  for (const a of animals) {
+    if (!Number.isFinite(a.networkTargetX) || !Number.isFinite(a.networkTargetY)) continue;
+    const distance = Math.hypot(a.networkTargetX - a.x, a.networkTargetY - a.y);
+    if (distance > BLOCK_SIZE * 8) {
+      a.x = a.networkTargetX;
+      a.y = a.networkTargetY;
+    } else {
+      a.x += (a.networkTargetX - a.x) * blend;
+      a.y += (a.networkTargetY - a.y) * blend;
+    }
+  }
 }
