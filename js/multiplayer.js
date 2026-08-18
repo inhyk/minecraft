@@ -10,13 +10,15 @@ const PLAYER_COLORS = [
 const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_PEER_PREFIX = 'inh-minecraft-';
 const NETWORK_TIMEOUT = 12000;
-const PLAYER_CONNECTION_TIMEOUT = 10000;
+const HEARTBEAT_INTERVAL = 3000;
+const PLAYER_CONNECTION_TIMEOUT = 60000;
 const MAX_ROOM_PLAYERS = 4;
 
 let roomPeer = null;
 let roomConnection = null;
 let roomConnections = new Map(); // host only: guest id -> PeerJS connection
 let roomGuestLastSeen = new Map();
+let roomHeartbeatTimer = null;
 let roomSeed = 0;
 let roomBlockChanges = new Map();
 let pendingJoin = null;
@@ -172,6 +174,8 @@ function initializeMultiplayerWorld(seed) {
 
 function destroyPeerTransport() {
   transportShuttingDown = true;
+  if (roomHeartbeatTimer) clearInterval(roomHeartbeatTimer);
+  roomHeartbeatTimer = null;
   if (pendingJoin) pendingJoin.reject(new Error('Connection cancelled'));
   pendingJoin = null;
   try {
@@ -412,6 +416,19 @@ function attachRoomConnection(connection, remoteId, remoteName, remoteColor) {
     roomGuestLastSeen.set(remoteId, Date.now());
   } else {
     roomConnection = connection;
+    const startHeartbeat = () => {
+      if (roomConnection !== connection) return;
+      if (roomHeartbeatTimer) clearInterval(roomHeartbeatTimer);
+      const sendHeartbeat = () => {
+        if (roomConnection === connection && connection.open) {
+          connection.send({ event: 'heartbeat', payload: { id: myId } });
+        }
+      };
+      sendHeartbeat();
+      roomHeartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+    };
+    if (connection.open) startHeartbeat();
+    else connection.on('open', startHeartbeat);
   }
   realtimeChannel = connection; // Kept for compatibility with the existing game state.
 
@@ -445,6 +462,8 @@ function attachRoomConnection(connection, remoteId, remoteName, remoteColor) {
     }
 
     if (roomConnection !== connection) return;
+    if (roomHeartbeatTimer) clearInterval(roomHeartbeatTimer);
+    roomHeartbeatTimer = null;
     roomConnection = null;
     realtimeChannel = null;
     if (isMultiplayer && !isHost && !transportShuttingDown) {
@@ -462,6 +481,8 @@ function handlePeerMessage(message, sourceId = null) {
   if (isHost && sourceId && roomConnections.has(sourceId)) {
     roomGuestLastSeen.set(sourceId, Date.now());
   }
+
+  if (message.event === 'heartbeat') return;
 
   if (message.event === 'init') {
     if (pendingJoin) pendingJoin.resolve(payload);
