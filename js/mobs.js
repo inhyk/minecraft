@@ -311,37 +311,51 @@ function creeperExplode(m) {
   const cx = Math.floor((m.x + m.w / 2) / BLOCK_SIZE);
   const cy = Math.floor((m.y + m.h / 2) / BLOCK_SIZE);
   const radius = 3;
+  const explosionX = m.x + m.w / 2;
+  const explosionY = m.y + m.h / 2;
+  const destroyedBlocks = [];
+  const isGuestPrediction = isMultiplayer && !isHost;
 
-  // Destroy blocks in radius
-  for (let bx = cx - radius; bx <= cx + radius; bx++) {
-    for (let by = cy - radius; by <= cy + radius; by++) {
-      const d = Math.sqrt((bx - cx) ** 2 + (by - cy) ** 2);
-      if (d <= radius) {
-        const block = getBlock(bx, by);
-        if (block !== B.AIR && block !== B.BEDROCK && block !== B.WATER) {
-          if (Math.random() < 0.4) addToInventory(BLOCK_INFO[block]?.drop || block);
-          setBlock(bx, by, B.AIR);
-          if (Math.random() < 0.3) spawnBreakParticles(bx, by, block);
+  // Only the room host changes authoritative blocks and player health.
+  if (!isGuestPrediction) {
+    for (let bx = cx - radius; bx <= cx + radius; bx++) {
+      for (let by = cy - radius; by <= cy + radius; by++) {
+        const d = Math.sqrt((bx - cx) ** 2 + (by - cy) ** 2);
+        if (d <= radius) {
+          const block = getBlock(bx, by);
+          if (block !== B.AIR && block !== B.BEDROCK && block !== B.WATER) {
+            if (Math.random() < 0.4) addToInventory(BLOCK_INFO[block]?.drop || block);
+            setBlock(bx, by, B.AIR);
+            destroyedBlocks.push({ bx, by, blockType: B.AIR, originalBlock: block });
+            if (Math.random() < 0.3) spawnBreakParticles(bx, by, block);
+          }
         }
       }
     }
-  }
 
-  // Damage all players if close
-  const allPlayers = getAllPlayersForMobs();
-  for (const p of allPlayers) {
-    const dist = Math.sqrt((p.x + p.w/2 - m.x - m.w/2)**2 + (p.y + p.h/2 - m.y - m.h/2)**2);
-    if (dist < BLOCK_SIZE * 4) {
-      const dmg = Math.max(1, 8 - dist / BLOCK_SIZE);
-      const kb = (p.x + p.w/2) > (m.x + m.w/2) ? 1 : -1;
-      attackPlayerByMob(p, dmg, kb);
+    // Damage all players if close
+    const allPlayers = getAllPlayersForMobs();
+    for (const p of allPlayers) {
+      const dist = Math.sqrt((p.x + p.w/2 - m.x - m.w/2)**2 + (p.y + p.h/2 - m.y - m.h/2)**2);
+      if (dist < BLOCK_SIZE * 4) {
+        const dmg = Math.max(1, 8 - dist / BLOCK_SIZE);
+        const kb = (p.x + p.w/2) > (m.x + m.w/2) ? 1 : -1;
+        attackPlayerByMob(p, dmg, kb);
+      }
+    }
+
+    if (isMultiplayer && isHost) {
+      netSendCreeperExplosion(explosionX, explosionY, destroyedBlocks);
     }
   }
 
-  // Explosion particles
+  spawnCreeperExplosionParticles(explosionX, explosionY);
+}
+
+function spawnCreeperExplosionParticles(x, y) {
   for (let p = 0; p < 20; p++) {
     particles.push({
-      x: m.x + m.w/2, y: m.y + m.h/2,
+      x, y,
       vx: (Math.random() - 0.5) * 10,
       vy: (Math.random() - 0.8) * 10,
       life: 20 + Math.random() * 15,

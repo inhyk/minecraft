@@ -536,6 +536,7 @@ function handlePeerMessage(message, sourceId = null) {
       handleBlockSet(payload);
       if (isHost) roomBlockChanges.set(payload.bx + ',' + payload.by, payload);
       break;
+    case 'creeper_explosion': handleCreeperExplosion(payload); break;
     case 'mob_state': handleMobState(payload); break;
     case 'chat': handleChat(payload); break;
     case 'attack_mob': handleAttackMob(payload); break;
@@ -641,6 +642,17 @@ function handleBlockSet(payload) {
   setBlock(payload.bx, payload.by, payload.blockType);
 }
 
+function handleCreeperExplosion(payload) {
+  if (isHost) return;
+  for (const change of payload.blocks || []) {
+    setBlock(change.bx, change.by, change.blockType);
+    if (Math.random() < 0.3) {
+      spawnBreakParticles(change.bx, change.by, change.originalBlock || B.DIRT);
+    }
+  }
+  spawnCreeperExplosionParticles(payload.x, payload.y);
+}
+
 function handleMobState(payload) {
   if (isHost) return;
   lastCreatureSnapshotAt = Date.now();
@@ -741,6 +753,19 @@ function netSendBlock(bx, by, blockType) {
   const payload = { bx, by, blockType, playerId: myId };
   if (isHost) roomBlockChanges.set(bx + ',' + by, payload);
   sendNetworkEvent('block_set', payload);
+}
+
+function netSendCreeperExplosion(x, y, blocks) {
+  if (!isMultiplayer || !isHost) return;
+  for (const change of blocks) {
+    roomBlockChanges.set(change.bx + ',' + change.by, {
+      bx: change.bx,
+      by: change.by,
+      blockType: change.blockType,
+      playerId: myId,
+    });
+  }
+  sendNetworkEvent('creeper_explosion', { x, y, blocks });
 }
 
 function netSendMobState() {
