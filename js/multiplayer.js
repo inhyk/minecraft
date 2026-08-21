@@ -537,6 +537,7 @@ function handlePeerMessage(message, sourceId = null) {
       if (isHost) roomBlockChanges.set(payload.bx + ',' + payload.by, payload);
       break;
     case 'creeper_explosion': handleCreeperExplosion(payload); break;
+    case 'achievement_progress': handleAchievementProgress(payload); break;
     case 'mob_state': handleMobState(payload); break;
     case 'chat': handleChat(payload); break;
     case 'attack_mob': handleAttackMob(payload); break;
@@ -653,6 +654,15 @@ function handleCreeperExplosion(payload) {
   spawnCreeperExplosionParticles(payload.x, payload.y);
 }
 
+function handleAchievementProgress(payload) {
+  if (isHost || payload.targetId !== myId) return;
+  if (payload.kind === 'mob_kill') {
+    checkMobKillAchievement(payload.data?.mobType);
+  } else if (payload.kind === 'animal_kill') {
+    checkAnimalKillAchievement(payload.data?.animalType);
+  }
+}
+
 function handleMobState(payload) {
   if (isHost) return;
   lastCreatureSnapshotAt = Date.now();
@@ -766,6 +776,11 @@ function netSendCreeperExplosion(x, y, blocks) {
     });
   }
   sendNetworkEvent('creeper_explosion', { x, y, blocks });
+}
+
+function netSendAchievementProgress(targetId, kind, data) {
+  if (!isMultiplayer || !isHost || !targetId) return;
+  sendNetworkEvent('achievement_progress', { targetId, kind, data });
 }
 
 function netSendMobState() {

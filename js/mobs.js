@@ -269,8 +269,12 @@ function updateMobs(dt) {
     if (m.health <= 0) {
       spawnMobDrops(m);
       spawnBreakParticles(Math.floor(m.x / BLOCK_SIZE), Math.floor(m.y / BLOCK_SIZE), B.DIRT);
-      // Achievement check
-      checkMobKillAchievement(m.type);
+      // Credit the player who actually dealt the killing blow.
+      if (isMultiplayer && isHost && m.lastAttackerId && m.lastAttackerId !== myId) {
+        netSendAchievementProgress(m.lastAttackerId, 'mob_kill', { mobType: m.type });
+      } else {
+        checkMobKillAchievement(m.type);
+      }
       mobs.splice(i, 1);
     }
   }

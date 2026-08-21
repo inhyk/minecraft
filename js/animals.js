@@ -166,8 +166,10 @@ function updateAnimals(dt) {
     if (a.health <= 0) {
       spawnAnimalDrops(a);
       spawnBreakParticles(Math.floor(a.x / BLOCK_SIZE), Math.floor(a.y / BLOCK_SIZE), B.DIRT);
-      // Achievement
-      if (typeof checkAnimalKillAchievement === 'function') {
+      // Credit the player who actually dealt the killing blow.
+      if (isMultiplayer && isHost && a.lastAttackerId && a.lastAttackerId !== myId) {
+        netSendAchievementProgress(a.lastAttackerId, 'animal_kill', { animalType: a.type });
+      } else if (typeof checkAnimalKillAchievement === 'function') {
         checkAnimalKillAchievement(a.type);
       }
       animals.splice(i, 1);
