@@ -14,6 +14,7 @@ function createPlayer() {
     h: BLOCK_SIZE * 1.8,
     vx: 0,
     vy: 0,
+    knockbackVx: 0,
     onGround: false,
     inventory: createDefaultInventory(),
     selectedSlot: 0,
@@ -43,10 +44,13 @@ function updatePlayer(dt) {
   // Frame-rate independent time scale (1.0 at 60fps)
   const t = Math.min(dt, 50) / TICK_RATE;
 
-  // Movement
-  player.vx = 0;
-  if (keys['KeyA'] || keys['ArrowLeft']) { player.vx = -MOVE_SPEED * t; player.facing = -1; }
-  if (keys['KeyD'] || keys['ArrowRight']) { player.vx = MOVE_SPEED * t; player.facing = 1; }
+  // Movement. Knockback is stored separately so keyboard input cannot erase it
+  // on the very next frame.
+  let inputVx = 0;
+  if (keys['KeyA'] || keys['ArrowLeft']) { inputVx = -MOVE_SPEED * t; player.facing = -1; }
+  if (keys['KeyD'] || keys['ArrowRight']) { inputVx = MOVE_SPEED * t; player.facing = 1; }
+  const knockbackVx = player.knockbackVx || 0;
+  player.vx = inputVx + knockbackVx * t;
 
   if ((keys['KeyW'] || keys['Space'] || keys['ArrowUp']) && player.onGround) {
     player.vy = JUMP_FORCE;
@@ -65,6 +69,8 @@ function updatePlayer(dt) {
   }
 
   // Horizontal collision
+  player.knockbackVx = knockbackVx * Math.pow(0.8, t);
+  if (Math.abs(player.knockbackVx) < 0.05) player.knockbackVx = 0;
   player.x += player.vx;
   resolveCollisionX();
 
@@ -93,6 +99,7 @@ function resolveCollisionX() {
           player.x = (x + 1) * BLOCK_SIZE;
         }
         player.vx = 0;
+        player.knockbackVx = 0;
       }
     }
   }
@@ -150,8 +157,8 @@ function damageArmor() {
   }
 }
 
-function damagePlayer(amount) {
-  if (playerHurtTimer > 0 || playerDeathTimer > 0) return;
+function damagePlayer(amount, knockbackDir = 0, knockbackForce = 0) {
+  if (playerHurtTimer > 0 || playerDeathTimer > 0) return false;
 
   // Calculate armor reduction
   const armorDefense = getTotalArmorDefense();
@@ -161,6 +168,12 @@ function damagePlayer(amount) {
 
   player.health -= actualDamage;
   playerHurtTimer = 500; // invincibility frames
+
+  if (knockbackDir && knockbackForce > 0) {
+    player.knockbackVx = knockbackDir * knockbackForce;
+    player.vy = -4;
+    player.onGround = false;
+  }
 
   // Sound effect
   if (typeof playHurtSound === 'function') playHurtSound();
@@ -179,6 +192,7 @@ function damagePlayer(amount) {
     player.health = 0;
     playerDeathTimer = 3000;
   }
+  return true;
 }
 
 function updatePlayerStatus(dt) {
@@ -197,6 +211,7 @@ function respawnPlayer() {
   player.x = spawnX * BLOCK_SIZE;
   player.y = spawnY * BLOCK_SIZE;
   player.vx = 0; player.vy = 0;
+  player.knockbackVx = 0;
   player.health = player.maxHealth;
   playerDeathTimer = 0;
   playerHurtTimer = 1000;

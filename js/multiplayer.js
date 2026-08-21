@@ -702,26 +702,15 @@ function handleMobDrop(payload) {
 }
 
 function handleDamagePlayer(payload) {
-  if (payload.targetId !== myId || playerHurtTimer > 0 || playerDeathTimer > 0) return;
-  player.health -= payload.damage;
-  playerHurtTimer = 500;
-  player.vx = payload.knockbackDir * 6;
-  player.vy = -4;
-  if (player.health <= 0) {
-    player.health = 0;
-    playerDeathTimer = 3000;
-  }
+  if (payload.targetId !== myId) return;
+  damagePlayer(payload.damage, payload.knockbackDir, 8);
 }
 
 function handlePvpAttack(payload) {
-  if (payload.targetId !== myId || playerHurtTimer > 0 || playerDeathTimer > 0) return;
-  player.health -= payload.damage;
-  playerHurtTimer = 500;
-  player.vx = payload.knockbackDir * 8;
-  player.vy = -5;
-  if (player.health <= 0) {
-    player.health = 0;
-    playerDeathTimer = 3000;
+  if (payload.targetId !== myId) return;
+  const wasAlive = playerDeathTimer <= 0;
+  const wasHit = damagePlayer(payload.damage, payload.knockbackDir, 10);
+  if (wasHit && wasAlive && playerDeathTimer > 0) {
     const attackerName = otherPlayers[payload.attackerId]?.name || 'Player';
     addChatMessage('System', attackerName + ' killed you!');
   }

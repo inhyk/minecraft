@@ -38,7 +38,7 @@ function attackPlayerByMob(targetPlayer, damage, knockbackDir) {
   if (targetPlayer.isLocal) {
     // Local player (host)
     if (playerHurtTimer <= 0 && playerDeathTimer <= 0) {
-      damagePlayer(damage);
+      damagePlayer(damage, knockbackDir, 8);
     }
   } else {
     // Remote player - send damage event
