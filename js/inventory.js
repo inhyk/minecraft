@@ -2,7 +2,7 @@
 // Inventory System
 // ============================================================
 
-// Helper: Normalize block types for crafting (treat all plank/log variants as equivalent)
+// Helper: Normalize equivalent block types for crafting
 function normalizeForCrafting(type) {
   // All planks -> B.PLANKS
   if (type === B.OAK_PLANKS || type === B.BIRCH_PLANKS || type === B.SPRUCE_PLANKS ||
@@ -24,6 +24,15 @@ function normalizeForCrafting(type) {
       type === B.DEEPSLATE || type === B.BLACKSTONE) {
     return B.STONE;
   }
+  // Deepslate ores can be used anywhere their regular ore can be used
+  if (type === B.DEEPSLATE_COAL_ORE) return B.COAL_ORE;
+  if (type === B.DEEPSLATE_IRON_ORE) return B.IRON_ORE;
+  if (type === B.DEEPSLATE_GOLD_ORE) return B.GOLD_ORE;
+  if (type === B.DEEPSLATE_COPPER_ORE) return B.COPPER_ORE;
+  if (type === B.DEEPSLATE_DIAMOND_ORE) return B.DIAMOND_ORE;
+  if (type === B.DEEPSLATE_EMERALD_ORE) return B.EMERALD_ORE;
+  if (type === B.DEEPSLATE_LAPIS_ORE) return B.LAPIS_ORE;
+  if (type === B.DEEPSLATE_REDSTONE_ORE) return B.REDSTONE_ORE;
   return type;
 }
 
