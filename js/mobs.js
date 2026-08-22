@@ -436,7 +436,7 @@ function attackMob() {
 
         // In multiplayer, guest sends attack to host
         if (isMultiplayer && !isHost) {
-          netSendAttackMob(i, damage, kb);
+          netSendAttackMob(m.networkId, damage, kb);
         } else {
           // Host or singleplayer: apply damage directly
           m.health -= damage;

@@ -12,6 +12,8 @@ const ROOM_PEER_PREFIX = 'inh-minecraft-';
 const NETWORK_TIMEOUT = 12000;
 const HEARTBEAT_INTERVAL = 3000;
 const PLAYER_CONNECTION_TIMEOUT = 60000;
+const ROOM_ROSTER_SYNC_INTERVAL = 1000;
+const ROOM_RECONNECT_DELAYS = [500, 1500, 3000, 5000, 8000];
 const MAX_ROOM_PLAYERS = 4;
 
 let roomPeer = null;
@@ -19,6 +21,10 @@ let roomConnection = null;
 let roomConnections = new Map(); // host only: guest id -> PeerJS connection
 let roomGuestLastSeen = new Map();
 let roomHeartbeatTimer = null;
+let roomRosterSyncTimer = 0;
+let roomReconnectTimer = null;
+let roomReconnectAttempt = 0;
+let roomReconnectInProgress = false;
 let roomSeed = 0;
 let roomBlockChanges = new Map();
 let pendingJoin = null;
@@ -185,6 +191,11 @@ function destroyPeerTransport() {
   transportShuttingDown = true;
   if (roomHeartbeatTimer) clearInterval(roomHeartbeatTimer);
   roomHeartbeatTimer = null;
+  if (roomReconnectTimer) clearTimeout(roomReconnectTimer);
+  roomReconnectTimer = null;
+  roomReconnectAttempt = 0;
+  roomReconnectInProgress = false;
+  roomRosterSyncTimer = 0;
   if (pendingJoin) pendingJoin.reject(new Error('Connection cancelled'));
   pendingJoin = null;
   try {
@@ -284,6 +295,8 @@ function installHostConnectionListener() {
     const guestId = metadata.id || connection.peer;
     const guestName = String(metadata.name || 'Player').slice(0, 16);
     const guestColor = metadata.color || getPlayerColor(guestId);
+    connection.roomGuestName = guestName;
+    connection.roomGuestColor = guestColor;
 
     if (roomConnections.has(guestId)) {
       connection.on('open', () => {
@@ -295,22 +308,15 @@ function installHostConnectionListener() {
 
     attachRoomConnection(connection, guestId, guestName, guestColor);
 
-    connection.on('open', () => {
+    const finishGuestJoin = () => {
       if (roomConnections.get(guestId) !== connection) return;
+      if (connection.roomJoinFinished) return;
+      connection.roomJoinFinished = true;
 
-      const players = {
-        [myId]: {
-          ...playerNetworkState(myId, playerName, getPlayerColor(myId), player),
-          isHost: true,
-        }
-      };
-      for (const [id, other] of Object.entries(otherPlayers)) {
-        players[id] = { ...other };
-      }
-
-      const guest = playerNetworkState(guestId, guestName, guestColor);
+      const wasKnown = Boolean(otherPlayers[guestId]);
+      const guest = otherPlayers[guestId] || playerNetworkState(guestId, guestName, guestColor);
       otherPlayers[guestId] = guest;
-      addChatMessage('System', guestName + ' joined');
+      if (!wasKnown) addChatMessage('System', guestName + ' joined');
 
       connection.send({
         event: 'init',
@@ -318,7 +324,7 @@ function installHostConnectionListener() {
           roomCode: currentRoomCode,
           seed: roomSeed,
           blockChanges: Array.from(roomBlockChanges.values()),
-          players,
+          players: buildRoomRoster(),
           mobs: serializeMobs(),
           villagers: serializeVillagers(),
           animals: serializeAnimals(),
@@ -326,7 +332,12 @@ function installHostConnectionListener() {
       });
 
       broadcastHostEvent('player_join', { player: guest }, guestId);
-    });
+      sendRoomRoster();
+    };
+
+    // Incoming PeerJS connections can already be open when this listener runs.
+    if (connection.open) finishGuestJoin();
+    else connection.on('open', finishGuestJoin);
   });
 }
 
@@ -335,6 +346,7 @@ async function joinRoom(roomCode, name) {
   connectError = '';
   destroyPeerTransport();
   isMultiplayer = false;
+  isHost = false;
   otherPlayers = {};
 
   const normalizedCode = String(roomCode || '').trim().toUpperCase();
@@ -358,51 +370,13 @@ async function joinRoom(roomCode, name) {
     });
     await waitForPeerOpen(roomPeer);
 
-    const snapshotPromise = waitForRoomSnapshot();
-    const connection = roomPeer.connect(roomPeerId(normalizedCode), {
-      metadata: {
-        id: myId,
-        name: playerName,
-        color: getPlayerColor(myId),
-      },
-      serialization: 'json',
-      reliable: true,
-    });
-
-    attachRoomConnection(connection, null, null, null);
-    const [snapshot] = await Promise.all([
-      snapshotPromise,
-      waitForConnectionOpen(connection),
-    ]);
-
-    roomSeed = snapshot.seed;
-    currentSession = { room_code: normalizedCode, seed: roomSeed };
-    isHost = false;
-    initializeMultiplayerWorld(roomSeed);
-
-    roomBlockChanges = new Map();
-    for (const change of snapshot.blockChanges || []) {
-      const key = change.bx + ',' + change.by;
-      roomBlockChanges.set(key, change);
-      setBlock(change.bx, change.by, change.blockType);
-    }
-    if (snapshot.mobs) applyMobState(snapshot.mobs);
-    if (snapshot.villagers) applyVillagerState(snapshot.villagers);
-    if (snapshot.animals) applyAnimalState(snapshot.animals);
-
-    if (snapshot.players) {
-      for (const networkPlayer of Object.values(snapshot.players)) {
-        if (networkPlayer?.id && networkPlayer.id !== myId) {
-          otherPlayers[networkPlayer.id] = networkPlayer;
-        }
-      }
-    } else if (snapshot.host) {
-      // Backward compatibility with rooms created by the previous two-player build.
-      otherPlayers[snapshot.host.id] = { ...snapshot.host, isHost: true };
-    }
+    const snapshot = await openGuestRoomConnection(normalizedCode);
+    applyRoomSnapshot(snapshot, true);
 
     isMultiplayer = true;
     gameState = STATE.PLAYING;
+    roomReconnectAttempt = 0;
+    netSendPosition();
     addChatMessage('System', 'Connected to room: ' + normalizedCode);
   } catch (error) {
     destroyPeerTransport();
@@ -415,6 +389,87 @@ async function joinRoom(roomCode, name) {
     } else {
       console.error(error);
     }
+  }
+}
+
+function openGuestRoomConnection(roomCode) {
+  const snapshotPromise = waitForRoomSnapshot();
+  const connection = roomPeer.connect(roomPeerId(roomCode), {
+    metadata: {
+      id: myId,
+      name: playerName,
+      color: getPlayerColor(myId),
+    },
+    serialization: 'json',
+    reliable: true,
+  });
+
+  attachRoomConnection(connection, null, null, null);
+  return Promise.all([
+    snapshotPromise,
+    waitForConnectionOpen(connection),
+  ]).then(([snapshot]) => snapshot);
+}
+
+function applyRoomSnapshot(snapshot, resetWorld) {
+  const nextSeed = snapshot.seed;
+  const needsWorldReset = resetWorld || roomSeed !== nextSeed;
+  roomSeed = nextSeed;
+  currentSession = { room_code: currentRoomCode, seed: roomSeed };
+  if (needsWorldReset) initializeMultiplayerWorld(roomSeed);
+
+  roomBlockChanges = new Map();
+  for (const change of snapshot.blockChanges || []) {
+    const key = change.bx + ',' + change.by;
+    roomBlockChanges.set(key, change);
+    setBlock(change.bx, change.by, change.blockType);
+  }
+  if (snapshot.mobs) applyMobState(snapshot.mobs);
+  if (snapshot.villagers) applyVillagerState(snapshot.villagers);
+  if (snapshot.animals) applyAnimalState(snapshot.animals);
+
+  if (snapshot.players) {
+    applyRoomRoster({ players: snapshot.players });
+  } else if (snapshot.host) {
+    otherPlayers = {
+      [snapshot.host.id]: { ...snapshot.host, isHost: true },
+    };
+  }
+}
+
+function scheduleRoomReconnect() {
+  if (!isMultiplayer || isHost || transportShuttingDown || roomReconnectTimer || roomReconnectInProgress) return;
+  const delay = ROOM_RECONNECT_DELAYS[Math.min(roomReconnectAttempt, ROOM_RECONNECT_DELAYS.length - 1)];
+  roomReconnectTimer = setTimeout(() => {
+    roomReconnectTimer = null;
+    reconnectGuestRoom();
+  }, delay);
+}
+
+async function reconnectGuestRoom() {
+  if (!isMultiplayer || isHost || transportShuttingDown || roomReconnectInProgress) return;
+  roomReconnectInProgress = true;
+  try {
+    if (!roomPeer || roomPeer.destroyed || roomPeer.disconnected) {
+      roomPeer = new Peer(undefined, { debug: 0 });
+      roomPeer.on('error', error => {
+        if (pendingJoin) pendingJoin.reject(error);
+      });
+      await waitForPeerOpen(roomPeer);
+    }
+
+    const snapshot = await openGuestRoomConnection(currentRoomCode);
+    applyRoomSnapshot(snapshot, false);
+    isHost = false;
+    roomReconnectAttempt = 0;
+    netSendPosition();
+    addChatMessage('System', 'Reconnected to room.');
+  } catch (error) {
+    roomReconnectAttempt++;
+    console.info('Room reconnect retry:', error.message || error);
+  } finally {
+    roomReconnectInProgress = false;
+    if (!roomConnection?.open) scheduleRoomReconnect();
   }
 }
 
@@ -476,9 +531,8 @@ function attachRoomConnection(connection, remoteId, remoteName, remoteColor) {
     roomConnection = null;
     realtimeChannel = null;
     if (isMultiplayer && !isHost && !transportShuttingDown) {
-      otherPlayers = {};
-      isHost = true;
-      addChatMessage('System', 'Host left. You can keep playing offline.');
+      addChatMessage('System', 'Connection lost. Reconnecting...');
+      scheduleRoomReconnect();
     }
   });
 }
@@ -489,9 +543,13 @@ function handlePeerMessage(message, sourceId = null) {
 
   if (isHost && sourceId && roomConnections.has(sourceId)) {
     roomGuestLastSeen.set(sourceId, Date.now());
+    ensureHostGuestState(sourceId);
   }
 
-  if (message.event === 'heartbeat') return;
+  if (message.event === 'heartbeat') {
+    if (isHost && sourceId) sendRoomRoster(roomConnections.get(sourceId));
+    return;
+  }
 
   if (message.event === 'init') {
     if (pendingJoin) pendingJoin.resolve(payload);
@@ -529,6 +587,9 @@ function handlePeerMessage(message, sourceId = null) {
   switch (message.event) {
     case 'player_join': handlePlayerJoin(payload); break;
     case 'player_leave': handlePlayerLeave(payload); break;
+    case 'room_roster':
+      if (!isHost) applyRoomRoster(payload);
+      break;
     case 'player_move':
       handlePlayerMove(payload);
       break;
@@ -568,6 +629,59 @@ function broadcastHostEvent(event, payload, excludeId = null) {
     sent = true;
   }
   return sent;
+}
+
+function ensureHostGuestState(guestId) {
+  if (otherPlayers[guestId]) return otherPlayers[guestId];
+  const connection = roomConnections.get(guestId);
+  if (!connection) return null;
+  const metadata = connection.metadata || {};
+  const guest = playerNetworkState(
+    guestId,
+    connection.roomGuestName || metadata.name || 'Player',
+    connection.roomGuestColor || metadata.color || getPlayerColor(guestId)
+  );
+  otherPlayers[guestId] = guest;
+  return guest;
+}
+
+function buildRoomRoster() {
+  const players = {
+    [myId]: {
+      ...playerNetworkState(myId, playerName, getPlayerColor(myId), player),
+      isHost: true,
+    }
+  };
+  for (const [guestId, connection] of roomConnections.entries()) {
+    if (!connection.open) continue;
+    const guest = ensureHostGuestState(guestId);
+    if (guest) players[guestId] = { ...guest, isHost: false };
+  }
+  return players;
+}
+
+function sendRoomRoster(connection = null) {
+  if (!isHost) return false;
+  const message = { event: 'room_roster', payload: { players: buildRoomRoster() } };
+  if (connection) {
+    if (!connection.open) return false;
+    connection.send(message);
+    return true;
+  }
+  return broadcastHostEvent(message.event, message.payload);
+}
+
+function applyRoomRoster(payload) {
+  if (!payload?.players) return;
+  const nextPlayers = {};
+  for (const networkPlayer of Object.values(payload.players)) {
+    if (!networkPlayer?.id || networkPlayer.id === myId) continue;
+    nextPlayers[networkPlayer.id] = {
+      ...(otherPlayers[networkPlayer.id] || {}),
+      ...networkPlayer,
+    };
+  }
+  otherPlayers = nextPlayers;
 }
 
 function removeGuestFromRoom(guestId, connection, announce, fallbackName = 'Player') {
@@ -677,23 +791,24 @@ function handleChat(payload) {
 
 function handleAttackMob(payload) {
   if (!isHost) return;
-  const { mobIndex, damage, knockbackDir, attackerId } = payload;
-  if (mobIndex >= 0 && mobIndex < mobs.length) {
-    const mob = mobs[mobIndex];
+  const { mobId, mobIndex, damage, knockbackDir, attackerId } = payload;
+  const mob = mobId ? mobs.find(candidate => candidate.networkId === mobId) : mobs[mobIndex];
+  if (mob) {
     mob.health -= damage;
     mob.hurtTimer = 300;
     mob.vx = knockbackDir * 5;
     mob.vy = -4;
     mob.onGround = false;
     mob.lastAttackerId = attackerId;
+    netSendMobState();
   }
 }
 
 function handleAttackAnimal(payload) {
   if (!isHost) return;
-  const { animalIndex, damage, knockbackDir, attackerId } = payload;
-  if (animalIndex >= 0 && animalIndex < animals.length) {
-    const animal = animals[animalIndex];
+  const { animalId, animalIndex, damage, knockbackDir, attackerId } = payload;
+  const animal = animalId ? animals.find(candidate => candidate.networkId === animalId) : animals[animalIndex];
+  if (animal) {
     animal.health -= damage;
     animal.hurtTimer = 300;
     animal.vx = knockbackDir * 4;
@@ -702,6 +817,7 @@ function handleAttackAnimal(payload) {
     animal.state = 'flee';
     animal.fleeTimer = 3000;
     animal.lastAttackerId = attackerId;
+    netSendMobState();
   }
 }
 
@@ -796,12 +912,12 @@ function netSendChat(message) {
   sendNetworkEvent('chat', { id: myId, name: playerName, message });
 }
 
-function netSendAttackMob(mobIndex, damage, knockbackDir) {
-  sendNetworkEvent('attack_mob', { mobIndex, damage, knockbackDir, attackerId: myId });
+function netSendAttackMob(mobId, damage, knockbackDir) {
+  return sendNetworkEvent('attack_mob', { mobId, damage, knockbackDir, attackerId: myId });
 }
 
-function netSendAttackAnimal(animalIndex, damage, knockbackDir) {
-  sendNetworkEvent('attack_animal', { animalIndex, damage, knockbackDir, attackerId: myId });
+function netSendAttackAnimal(animalId, damage, knockbackDir) {
+  return sendNetworkEvent('attack_animal', { animalId, damage, knockbackDir, attackerId: myId });
 }
 
 function netSendDropItem(dropped) {
@@ -869,6 +985,14 @@ function updateNetwork(dt) {
   if (mobSyncTimer >= MOB_SYNC_RATE && isHost) {
     mobSyncTimer = 0;
     netSendMobState();
+  }
+
+  if (isHost) {
+    roomRosterSyncTimer += dt;
+    if (roomRosterSyncTimer >= ROOM_ROSTER_SYNC_INTERVAL) {
+      roomRosterSyncTimer = 0;
+      sendRoomRoster();
+    }
   }
 }
 

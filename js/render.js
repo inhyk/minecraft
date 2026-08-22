@@ -494,6 +494,10 @@ function drawHUD() {
 function drawMultiplayerPanel() {
   if (!isMultiplayer || !player) return;
 
+  const connectedGuestIds = isHost
+    ? new Set(Array.from(roomConnections.entries()).filter(([, connection]) => connection.open).map(([id]) => id))
+    : null;
+  const remoteEntries = Object.values(otherPlayers).filter(other => !connectedGuestIds || connectedGuestIds.has(other.id));
   const entries = [
     {
       id: myId,
@@ -503,8 +507,9 @@ function drawMultiplayerPanel() {
       isHost,
       isMe: true,
     },
-    ...Object.values(otherPlayers).map(other => ({ ...other, isMe: false })),
+    ...remoteEntries.map(other => ({ ...other, isMe: false })),
   ].slice(0, MAX_ROOM_PLAYERS);
+  const onlineCount = isHost ? 1 + connectedGuestIds.size : entries.length;
 
   const x = 10;
   const y = 38;
@@ -525,7 +530,7 @@ function drawMultiplayerPanel() {
   ctx.fillText(`ROOM ${currentRoomCode}`, x + 10, y + 16);
   ctx.fillStyle = '#7cff78';
   ctx.font = '11px monospace';
-  ctx.fillText(`${entries.length}/${MAX_ROOM_PLAYERS} ONLINE`, x + 10, y + 31);
+  ctx.fillText(`${onlineCount}/${MAX_ROOM_PLAYERS} ONLINE`, x + 10, y + 31);
 
   entries.forEach((entry, index) => {
     const rowY = y + headerHeight + index * rowHeight;

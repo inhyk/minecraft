@@ -227,7 +227,7 @@ function attackAnimal() {
 
         // In multiplayer, guest sends attack to host
         if (isMultiplayer && !isHost) {
-          netSendAttackAnimal(i, damage, kb);
+          netSendAttackAnimal(a.networkId, damage, kb);
         } else {
           // Host or singleplayer: apply damage directly
           a.health -= damage;
